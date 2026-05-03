@@ -1,6 +1,8 @@
 import getDB from "@/config/database";
 import DoctorAPI from "@/lib/doctorAPI";
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request) {
   try {
     await getDB();

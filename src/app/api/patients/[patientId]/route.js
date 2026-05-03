@@ -1,10 +1,11 @@
 import getDB from "@/config/database"
-import PatientAPI from "@/api/patientAPI"
+import PatientAPI from "@/lib/patientAPI"
 
 export async function GET(request, { params }) {
   try {
     await getDB()
-    const patient = await PatientAPI.getPatientById(params.patientId)
+    const { patientId } = await params
+    const patient = await PatientAPI.getPatientById(patientId)
 
     if (!patient) {
       return Response.json({ success: false, error: "Patient not found" }, { status: 404 })
@@ -21,7 +22,8 @@ export async function PUT(request, { params }) {
   try {
     await getDB()
     const body = await request.json()
-    const patient = await PatientAPI.updatePatient(params.patientId, body)
+    const { patientId } = await params
+    const patient = await PatientAPI.updatePatient(patientId, body)
 
     if (!patient) {
       return Response.json({ success: false, error: "Patient not found" }, { status: 404 })
@@ -37,7 +39,8 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     await getDB()
-    const result = await PatientAPI.deletePatient(params.patientId)
+    const { patientId } = await params
+    const result = await PatientAPI.deletePatient(patientId)
 
     if (result.deletedCount === 0) {
       return Response.json({ success: false, error: "Patient not found" }, { status: 404 })

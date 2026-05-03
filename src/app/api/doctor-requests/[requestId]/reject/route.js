@@ -1,5 +1,6 @@
 import getDB from "@/config/database";
 import DoctorRequestAPI from "@/app/api/doctorRequestAPI";
+import { sendRejectionEmail } from "@/lib/emailService";
 
 export async function POST(request, context) {
   try {
@@ -18,11 +19,20 @@ export async function POST(request, context) {
       );
     }
 
-    await DoctorRequestAPI.rejectRequest(
+    const doctorRequest = await DoctorRequestAPI.rejectRequest(
       requestId,
       rejectionReason,
       adminId
     );
+
+    // Send rejection email to doctor
+    try {
+      if (doctorRequest && doctorRequest.doctorEmail) {
+        await sendRejectionEmail(doctorRequest.doctorEmail, rejectionReason);
+      }
+    } catch (emailError) {
+      console.error("Failed to send rejection email:", emailError);
+    }
 
     return Response.json({ success: true }, { status: 200 });
   } catch (error) {

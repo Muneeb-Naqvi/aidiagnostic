@@ -32,18 +32,24 @@ export async function POST(req, context) {
 
     const results = await Promise.all(pendingReports.map(async (report) => {
       try {
-        let extractedText = report.extractedText || "";
-        if (!extractedText && (report.fileType?.startsWith("image/") || report.fileUrl.toLowerCase().endsWith(".pdf"))) {
-          try {
-            extractedText = await extractTextFromImage(report.fileUrl);
-          } catch (ocrError) {
-            extractedText = "";
-          }
-        }
+         let extractedText = report.extractedText || "";
+         let ocrFailed = false;
+         if (!extractedText && (report.fileType?.startsWith("image/") || report.fileUrl.toLowerCase().endsWith(".pdf"))) {
+           try {
+             extractedText = await extractTextFromImage(report.fileUrl);
+           } catch (ocrError) {
+             extractedText = "";
+             ocrFailed = true;
+           }
+         }
 
-        if (!extractedText || extractedText.trim().length < 10) {
-          extractedText = `Report Title: ${report.reportTitle}`;
-        }
+         if (!extractedText || extractedText.trim().length < 10) {
+           extractedText = `Report Title: ${report.reportTitle}`;
+           // If OCR failed and we're falling back to title, mark it as such
+           if (ocrFailed) {
+             extractedText = `[OCR FAILED] Report Title: ${report.reportTitle}`;
+           }
+         }
 
         const prompt = medicalPrompt(extractedText);
 
@@ -88,21 +94,33 @@ export async function POST(req, context) {
           throw new Error(`AI Analysis failed for this report.`);
         }
 
-        let analysis;
-        try {
-          let jsonMatch = responseText.match(/\{[\s\S]*\}/);
-          let toParse = jsonMatch ? jsonMatch[0] : responseText;
-          const cleaned = toParse.replace(/```json|```/g, "").trim();
-          analysis = JSON.parse(cleaned);
-        } catch (parseError) {
-          analysis = {
-            disease: "Analysis Error",
-            severity: "unknown",
-            confidence: 0,
-            details: "Error parsing AI response. Information may be cut off.",
-            suggestedSpecializations: [],
-          };
-        }
+         let analysis;
+         try {
+           let jsonMatch = responseText.match(/\{[\s\S]*\}/);
+           let toParse = jsonMatch ? jsonMatch[0] : responseText;
+           const cleaned = toParse.replace(/```json|```/g, "").trim();
+           analysis = JSON.parse(cleaned);
+         } catch (parseError) {
+           analysis = {
+             disease: "Analysis Error",
+             severity: "unknown",
+             confidence: 0,
+             details: "Error parsing AI response. Information may be cut off.",
+             suggestedSpecializations: [],
+           };
+         }
+
+         // Check if the disease is missing or indicates insufficient data
+         if (!analysis.disease || 
+             analysis.disease.trim() === "" || 
+             analysis.disease.toLowerCase().includes("insufficient data") ||
+             analysis.disease.toLowerCase().includes("cannot determine")) {
+           analysis.disease = "Insufficient data to determine clinical condition";
+           analysis.severity = "unknown";
+           analysis.confidence = 0;
+           analysis.details = "The provided report does not contain enough information for a reliable clinical assessment. Please ensure the report is clear and legible, or consult with a healthcare professional.";
+           analysis.suggestedSpecializations = [];
+         }
 
         let matchingDoctors = [];
         if (analysis.suggestedSpecializations && analysis.suggestedSpecializations.length > 0) {

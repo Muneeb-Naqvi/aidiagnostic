@@ -43,3 +43,184 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.4);
 }
+
+/* ================================================
+   MOBILE RESPONSIVE UTILITIES
+   ================================================ */
+
+/* Sidebar Responsiveness */
+.sidebar-mobile-hidden {
+  @apply transform -translate-x-full transition-transform duration-300 ease-in-out;
+}
+
+.sidebar-mobile-visible {
+  @apply transform translate-x-0 transition-transform duration-300 ease-in-out;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  @apply fixed top-4 left-4 z-[100] w-12 h-12 rounded-xl bg-[#3875FD] text-white flex items-center justify-center shadow-lg md:hidden;
+}
+
+/* Grid Responsiveness */
+.grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6;
+}
+
+/* Dashboard Content Padding */
+.dashboard-content {
+  @apply ml-0 md:ml-72 p-4 sm:p-6 lg:p-10;
+}
+
+/* Modal Responsiveness */
+.modal-responsive {
+  @apply w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto;
+}
+
+/* Form Responsiveness */
+.form-grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+}
+
+/* ================================================
+   BUTTON WITH BORDER TEXT STYLES
+   ================================================ */
+
+.btn-with-border-text {
+  @apply relative px-6 py-3 border-2 border-[#3875FD] rounded-lg bg-white text-[#3875FD] font-semibold transition-all duration-200 hover:bg-[#3875FD]/5;
+}
+
+.btn-with-border-text-label {
+  @apply absolute -top-2 left-1/2 -translate-x-1/2 bg-white px-2 text-xs font-bold text-[#3875FD] tracking-wide;
+}
+
+.btn-bordered-primary {
+  @apply relative px-6 py-4 border-2 border-[#3875FD] rounded-xl bg-[#3875FD] text-white font-semibold transition-all duration-200 hover:bg-[#2c5cd8] shadow-md hover:shadow-lg;
+}
+
+.btn-bordered-primary-label {
+  @apply absolute -top-3 left-1/2 -translate-x-1/2 bg-white border-2 border-[#3875FD] px-3 py-0.5 rounded-full text-xs font-bold text-[#3875FD] tracking-wide;
+}
+
+.btn-bordered-secondary {
+  @apply relative px-6 py-4 border-2 border-[#020331] rounded-xl bg-[#020331] text-white font-semibold transition-all duration-200 hover:bg-[#1a1a4a] shadow-md hover:shadow-lg;
+}
+
+.btn-bordered-secondary-label {
+  @apply absolute -top-3 left-1/2 -translate-x-1/2 bg-white border-2 border-[#020331] px-3 py-0.5 rounded-full text-xs font-bold text-[#020331] tracking-wide;
+}
+
+.btn-sm-bordered {
+  @apply relative px-4 py-2 border border-[#3875FD] rounded-lg text-sm font-semibold;
+}
+
+.btn-sm-bordered-label {
+  @apply absolute -top-1.5 left-1/2 -translate-x-1/2 bg-white px-1.5 text-[10px] font-bold text-[#3875FD];
+}
+
+.btn-bordered-primary {
+  @apply relative px-6 py-4 border-2 border-[#3875FD] rounded-xl bg-[#3875FD] text-white font-semibold transition-all duration-200 hover:bg-[#2c5cd8] shadow-md hover:shadow-lg;
+}
+
+.btn-bordered-primary-label {
+  @apply absolute -top-3 left-6 bg-white border-2 border-[#3875FD] px-3 py-0.5 rounded-full text-xs font-bold text-[#3875FD] tracking-wide;
+}
+
+.btn-bordered-secondary {
+  @apply relative px-6 py-4 border-2 border-[#020331] rounded-xl bg-[#020331] text-white font-semibold transition-all duration-200 hover:bg-[#1a1a4a] shadow-md hover:shadow-lg;
+}
+
+.btn-bordered-secondary-label {
+  @apply absolute -top-3 left-6 bg-white border-2 border-[#020331] px-3 py-0.5 rounded-full text-xs font-bold text-[#020331] tracking-wide;
+}
+
+/* Small button with border text */
+.btn-sm-bordered {
+  @apply relative px-4 py-2 border border-[#3875FD] rounded-lg text-sm font-semibold;
+}
+
+.btn-sm-bordered-label {
+  @apply absolute -top-1.5 left-2 bg-white px-1.5 text-[10px] font-bold text-[#3875FD];
+}
+
+/* ================================================
+   MOBILE BREAKPOINT OPTIMIZATIONS
+   ================================================ */
+
+@media (max-width: 768px) {
+  .sidebar {
+    @apply fixed z-[90] w-72 h-full;
+  }
+  
+  .dashboard-content {
+    @apply ml-0 pt-16;
+  }
+  
+  .card {
+    @apply p-4 sm:p-6;
+  }
+  
+  .modal-content {
+    @apply p-4 sm:p-6;
+  }
+  
+  h1 {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+  
+  h2 {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+  
+  .grid-cols-3 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .grid-cols-4 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+  }
+}
+
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    @apply hidden;
+  }
+  
+  .stack-on-mobile {
+    @apply flex-col;
+  }
+  
+  .full-width-mobile {
+    @apply w-full;
+  }
+}
+
+/* Button Styles */
+.btn-primary {
+  @apply px-6 py-3 bg-[#3875FD] text-white font-semibold rounded-lg hover:bg-[#2c5cd8] transition-all duration-200 shadow-sm;
+}
+
+.btn-secondary {
+  @apply px-6 py-3 bg-[#020331] text-white font-semibold rounded-lg hover:bg-[#1a1a4a] transition-all duration-200;
+}
+
+.btn-outline {
+  @apply px-6 py-3 border-2 border-[#3875FD] text-[#3875FD] font-semibold rounded-lg hover:bg-[#3875FD]/10 transition-all duration-200;
+}
+
+/* Custom select/dropdown styles */
+[data-radix-select-trigger] {
+  @apply bg-white;
+}
+
+[data-radix-select-content] {
+  @apply bg-white rounded-lg shadow-lg border border-gray-200;
+}
+
+/* Input Styles */
+.input-base {
+  @apply flex h-12 w-full rounded-lg border border-[#80A0B5]/40 bg-white px-4 py-2 text-sm ring-offset-white transition-all duration-200;
+  @apply placeholder:text-[#80A0B5];
+  @apply focus:outline-none focus:ring-2 focus:ring-[#3875FD] focus:ring-offset-2 focus:border-[#3875FD];
+  @apply disabled:cursor-not-allowed disabled:opacity-50;
+}

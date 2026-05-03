@@ -1,6 +1,7 @@
 import getDB from "@/config/database";
 import DoctorRequestAPI from "@/app/api/doctorRequestAPI";
 import DoctorAPI from "@/lib/doctorAPI";
+import { sendApprovalEmail } from "@/lib/emailService";
 
 export async function POST(request, context) {
   try {
@@ -33,18 +34,35 @@ export async function POST(request, context) {
       adminId
     );
 
-    await DoctorAPI.createDoctor(
+    const newDoctor = await DoctorAPI.createDoctor(
       {
         name: `${doctorRequest.firstName} ${doctorRequest.lastName}`,
         email: doctorRequest.doctorEmail,
         specialization: doctorRequest.specialization,
         licenseNumber: doctorRequest.licenseNumber,
         password: doctorRequest.password, // already hashed
+        doctorId
       },
       doctorId
     );
+    
+    // Update doctor request even if doctor already existed
+    if (!doctorRequest.doctorId) {
+      await DoctorRequestAPI.updateRequest(requestId, { doctorId: newDoctor.doctorId });
+    }
 
-    return Response.json({ success: true, doctorId }, { status: 200 });
+    // Send approval email to doctor
+    try {
+      await sendApprovalEmail(doctorRequest.doctorEmail, {
+        name: `${doctorRequest.firstName} ${doctorRequest.lastName}`,
+        doctorId,
+        email: doctorRequest.doctorEmail
+      });
+    } catch (emailError) {
+      console.error("Failed to send approval email:", emailError);
+    }
+
+    return Response.json({ success: true, doctorId, data: newDoctor }, { status: 200 });
   } catch (error) {
     console.error("[API] Approve error:", error);
     return Response.json(

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SPECIALIZATIONS } from "@/lib/constants"
+import Swal from "sweetalert2"
 
 export default function DoctorLogin() {
   const router = useRouter()
@@ -56,11 +57,11 @@ export default function DoctorLogin() {
 
       const data = await response.json()
 
-      if (!data.success) {
-        setError(data.error || "Invalid credentials")
-        setIsLoading(false)
-        return
-      }
+       if (!data.success) {
+         Swal.fire({ icon: 'error', title: 'Login Failed', text: data.error || 'Invalid credentials', confirmButtonColor: '#EF4444' })
+         setIsLoading(false)
+         return
+       }
 
       localStorage.setItem("doctorId", data.doctor.doctorId)
       localStorage.setItem("doctorName", data.doctor.name)
@@ -77,36 +78,59 @@ export default function DoctorLogin() {
     }
   }
 
-  const handleRequestAccess = async (e) => {
-    e.preventDefault()
-    setError("")
-    setSuccess("")
+   // Pakistan Phone Number Validation
+   const validatePhoneNumber = (phone) => {
+     const pakistanRegex = /^\+92[0-9]{10}$/
+     return pakistanRegex.test(phone)
+   }
 
-    // Validation
-    if (!requestData.firstName || !requestData.lastName || !requestData.email || !requestData.phone) {
-      setError("Please fill in all required fields")
-      return
-    }
+   // Email Validation (block fake domains)
+   const validateEmail = (email) => {
+     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+     const fakeDomains = ['tempmail', '10minutemail', 'throwaway', 'fakeemail', 'dispostable', 'yopmail', 'guerrillamail', 'mailinator', 'temp-mail']
+     const isValidFormat = emailRegex.test(email)
+     const isNotFake = !fakeDomains.some(domain => email.toLowerCase().includes(domain))
+     return isValidFormat && isNotFake
+   }
 
-    if (!requestData.specialization) {
-      setError("Please select a specialization")
-      return
-    }
+   const handleRequestAccess = async (e) => {
+     e.preventDefault()
+     setError("")
+     setSuccess("")
 
-    if (!requestData.licenseNumber) {
-      setError("Please enter your license number")
-      return
-    }
-
-    if (!requestData.password || requestData.password.length < 8) {
-      setError("Password must be at least 8 characters")
-      return
-    }
-
-    if (requestData.password !== requestData.confirmPassword) {
-      setError("Passwords do not match")
-      return
-    }
+     // Full Validations
+     if (!requestData.firstName || requestData.firstName.length < 2) {
+       Swal.fire({ icon: 'error', title: 'Invalid Name', text: 'Please enter a valid first name', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (!requestData.lastName || requestData.lastName.length < 2) {
+       Swal.fire({ icon: 'error', title: 'Invalid Name', text: 'Please enter a valid last name', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (!validateEmail(requestData.email)) {
+       Swal.fire({ icon: 'error', title: 'Invalid Email', text: 'Please enter a valid professional email address. Temporary/fake emails are not allowed.', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (!validatePhoneNumber(requestData.phone)) {
+       Swal.fire({ icon: 'error', title: 'Invalid Phone Number', text: 'Please use Pakistan format: +923001234567', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (!requestData.specialization) {
+       Swal.fire({ icon: 'error', title: 'Select Specialization', text: 'Please select your specialization', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (!requestData.licenseNumber || requestData.licenseNumber.length < 4) {
+       Swal.fire({ icon: 'error', title: 'Invalid License', text: 'Please enter valid PMDC license number', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (!requestData.password || requestData.password.length < 8) {
+       Swal.fire({ icon: 'error', title: 'Weak Password', text: 'Password must be at least 8 characters long', confirmButtonColor: '#EF4444' })
+       return
+     }
+     if (requestData.password !== requestData.confirmPassword) {
+       Swal.fire({ icon: 'error', title: 'Password Mismatch', text: 'Passwords do not match', confirmButtonColor: '#EF4444' })
+       return
+     }
 
     setIsLoading(true)
     try {
@@ -126,13 +150,20 @@ export default function DoctorLogin() {
 
       const data = await response.json()
 
-      if (!data.success) {
-        setError(data.error || "Failed to submit request")
-        setIsLoading(false)
-        return
-      }
+       if (!data.success) {
+         Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Failed to submit request', confirmButtonColor: '#EF4444' })
+         setIsLoading(false)
+         return
+       }
 
-      setSuccess("Request submitted successfully! Admin will review your request.")
+       Swal.fire({
+         icon: 'success',
+         title: 'Request Submitted!',
+         text: 'Your access request has been submitted. Admin will review your application.',
+         confirmButtonColor: '#10B981',
+         timer: 4000,
+         timerProgressBar: true
+       })
       setRequestData({
         firstName: "",
         lastName: "",
@@ -399,17 +430,19 @@ export default function DoctorLogin() {
     <Label htmlFor="phone" className="text-[#020331] font-medium text-sm block">
       Phone Number
     </Label>
-    <Input
-      id="phone"
-      type="tel"
-      placeholder="0300-0000000"
-      value={requestData.phone}
-      onChange={(e) => setRequestData({ ...requestData, phone: e.target.value })}
-      disabled={isLoading}
-      className="w-full h-11 px-4 bg-[#FFFDFE] border border-[#80A0B5] text-[#020331] placeholder:text-[#80A0B5]/70 
-                 focus:border-[#3B75FD] focus:ring-4 focus:ring-[#3B75FD]/20 rounded-xl text-base 
-                 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-    />
+     <Input
+       id="phone"
+       type="tel"
+       placeholder="+923001234567"
+       value={requestData.phone}
+       onChange={(e) => setRequestData({ ...requestData, phone: e.target.value })}
+       disabled={isLoading}
+       maxLength={13}
+       className="w-full h-11 px-4 bg-[#FFFDFE] border border-[#80A0B5] text-[#020331] placeholder:text-[#80A0B5]/70 
+                  focus:border-[#3B75FD] focus:ring-4 focus:ring-[#3B75FD]/20 rounded-xl text-base 
+                  transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+     />
+     <p className="text-xs text-slate-500 mt-1">Format: +923001234567</p>
   </div>
 
   <div className="space-y-2">

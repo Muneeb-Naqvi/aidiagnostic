@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { validateEmail, validatePassword } from "@/lib/utils"
 import { toast } from "sonner"
+import Swal from 'sweetalert2'
 
 
 export default function PatientLogin() {
@@ -117,6 +118,20 @@ export default function PatientLogin() {
         localStorage.setItem("patientName", data.data.name)
         setSuccess("Account created successfully!")
         setTimeout(() => router.push("/patients-dashboard"), 1000)
+      } else if (data.fakeEmail) {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Email Detected',
+          html: '<p>⚠️ <strong>Please use a real and original Gmail address</strong><br><br>Temporary / fake / disposable email addresses are not allowed for registration.<br>Use your real email account to signup.',
+          confirmButtonColor: '#3B75FD',
+          confirmButtonText: 'Use Real Email',
+          showCloseButton: true,
+          customClass: {
+            container: 'font-sans',
+            popup: 'rounded-2xl shadow-xl',
+            confirmButton: 'font-semibold px-6 py-3 rounded-xl'
+          }
+        })
       } else {
         setError(data.error || "Error creating account")
       }

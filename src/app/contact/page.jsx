@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Swal from 'sweetalert2'
 import {
   Mail,
   Phone,
@@ -35,7 +36,15 @@ export default function Contact() {
     // Simulate API call
     setTimeout(() => {
       console.log("Contact form submitted:", formData)
-      alert("Thank you! Our team will get back to you within 24 hours.")
+      Swal.fire({
+        icon: 'success',
+        title: 'Message Sent!',
+        text: 'Thank you! Our team will get back to you within 24 hours.',
+        confirmButtonColor: '#3B75FD',
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: true
+      })
       setFormData({ name: "", email: "", subject: "", message: "" })
       setIsSubmitting(false)
     }, 1200)

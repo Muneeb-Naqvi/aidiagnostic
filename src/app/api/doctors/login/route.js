@@ -19,6 +19,18 @@ export async function POST(request) {
       return new Response(JSON.stringify({ success: false, error: "Invalid Doctor ID or password" }), { status: 401 })
     }
 
+    // Check if doctor is approved
+    if (doctor.status !== "approved") {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: doctor.status === "pending" 
+          ? "Your account is pending admin approval. Please wait for verification." 
+          : doctor.status === "rejected"
+          ? "Your account request has been rejected. Contact administration for details."
+          : "Your account has been suspended. Contact administration."
+      }), { status: 403 })
+    }
+
     // Sign Token
     const token = signToken({ id: doctor._id, doctorId: doctor.doctorId, role: "doctor" })
 

@@ -1,8 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   LogOut,
   LayoutDashboard,
@@ -11,11 +12,19 @@ import {
   Users,
   Pill,
   Brain,
+  Menu,
+  X,
 } from "lucide-react"
 
 export function PatientSidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   const menuItems = [
     { label: "Dashboard", href: "/patients-dashboard", icon: LayoutDashboard },
@@ -32,13 +41,36 @@ export function PatientSidebar() {
   }
 
   return (
-    <motion.aside
-      initial={{ x: -260 }}
-      animate={{ x: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="w-64 h-screen fixed left-0 top-0 flex flex-col
-                 bg-[#FFFDFD] border-r border-[#80A0B5]/40"
-    >
+    <>
+      {/* Mobile Menu Toggle Button */}
+      <button 
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="mobile-menu-btn md:hidden"
+      >
+        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/50 z-[80] md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.aside
+        initial={{ x: -260 }}
+        animate={{ x: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className={`sidebar w-64 h-screen fixed left-0 top-0 flex flex-col
+                   bg-[#FFFDFD] border-r border-[#80A0B5]/40 z-[90]
+                   ${mobileMenuOpen ? 'sidebar-mobile-visible' : 'sidebar-mobile-hidden md:translate-x-0'}`}
+      >
       {/* ================= Logo / Header ================= */}
       <div className="p-6 border-b border-[#80A0B5]/40 flex items-center gap-3">
         <div className="w-11 h-11 bg-[#3875FD] text-white rounded-xl flex items-center justify-center shadow-md">

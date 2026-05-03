@@ -11,13 +11,15 @@ const DoctorAPI = {
     if (data.email) {
       const existing = await collection.findOne({ email: data.email });
       if (existing) {
-        throw new Error(`Doctor with email ${data.email} already exists.`);
+        // If doctor already exists, return existing instead of throwing error
+        return existing;
       }
     }
 
     const doctor = {
       doctorId,
       ...data,
+      status: "approved",
       createdAt: new Date(),
     }
 

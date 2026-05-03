@@ -1,18 +1,24 @@
 import DoctorRequestAPI from "@/app/api/doctorRequestAPI";
+import { sendDoctorEmail } from "@/lib/emailService";
 
-// ================== POST (Doctor Signup) ==================
+export const dynamic = 'force-dynamic'
+
 export async function POST(request) {
   try {
     const body = await request.json();
     const {
       firstName,
       lastName,
-      email,
-      phone,
+      doctorEmail,
+      phoneNumber,
       specialization,
       licenseNumber,
       password,
     } = body;
+
+    // Map frontend field names to API expected names
+    const email = doctorEmail || body.email;
+    const phone = phoneNumber || body.phone;
 
     if (
       !firstName ||
@@ -37,6 +43,31 @@ export async function POST(request) {
       licenseNumber,
       password,
     });
+
+    // Send confirmation email to doctor
+    try {
+      await sendDoctorEmail(email, "✅ Access Request Received", `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #3B82F6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h2>Request Received!</h2>
+          </div>
+          <div style="padding: 30px; background: #f9fafb; border-radius: 0 0 8px 8px;">
+            <p>Dear Dr. ${firstName} ${lastName},</p>
+            <p>Your doctor access request has been successfully submitted.</p>
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #3B82F6;">Request Details</h3>
+              <p><strong>Specialization:</strong> ${specialization}</p>
+              <p><strong>License Number:</strong> ${licenseNumber}</p>
+              <p><strong>Status:</strong> <span style="color: #F59E0B;">Pending Review</span></p>
+            </div>
+            <p>Our admin team will review your application within 24-48 hours. You will receive email notification once decision is made.</p>
+            <p style="color: #666;">Best Regards,<br>Medical Appointment System</p>
+          </div>
+        </div>
+      `);
+    } catch (emailError) {
+      console.error("Failed to send confirmation email:", emailError);
+    }
 
     return Response.json(
       { success: true, data: doctorRequest },

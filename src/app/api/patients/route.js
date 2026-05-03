@@ -1,5 +1,6 @@
 // src/app/api/patients/route.js
 import PatientAPI from "@/lib/patientAPI"
+import { verifyEmailExists, sendWelcomeEmail } from "@/lib/nodemailer"
 
 export async function GET() {
   try {
@@ -26,6 +27,19 @@ export async function POST(request) {
       )
     }
 
+    // Verify email is not fake/disposable
+    const emailCheck = await verifyEmailExists(email);
+    if (!emailCheck.valid) {
+      return Response.json(
+        { 
+          success: false, 
+          error: emailCheck.reason || "Please use a valid real email address",
+          fakeEmail: true
+        },
+        { status: 400 }
+      )
+    }
+
     const existingPatient = await PatientAPI.getPatientByEmail(email)
     if (existingPatient) {
       return Response.json(
@@ -45,6 +59,9 @@ export async function POST(request) {
       bloodGroup,
       password,
     })
+
+    // Send welcome email after successful signup
+    await sendWelcomeEmail(email, name);
 
     return Response.json(
       { success: true, data: patient },

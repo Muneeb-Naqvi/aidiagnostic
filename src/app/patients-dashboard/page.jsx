@@ -25,10 +25,20 @@ import {
   Activity,
   ChevronRight,
   Send,
+  CalendarPlus,
+  CheckCircle,
+  XCircle,
+  Clock3,
+  Bell,
+  BellOff,
+  Hospital
 } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+ import DoctorProfileCard from "@/components/doctor-profile-card"
+ import { Button } from "@/components/ui/button"
+import { FAISALABAD_HOSPITALS } from "@/lib/hospitals"
+import Swal from "sweetalert2"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -70,6 +80,7 @@ function PatientSidebar() {
     { id: "overview", label: "Overview", icon: HeartPulse },
     { id: "reports", label: "My Reports", icon: FileText },
     { id: "doctors", label: "Suggested Doctors", icon: Stethoscope },
+    { id: "appointments", label: "My Appointments", icon: Calendar },
     { id: "prescriptions", label: "Prescriptions", icon: Activity },
   ]
 
@@ -100,7 +111,23 @@ function PatientSidebar() {
           ))}
         </nav>
 
-        <div className="mt-auto px-4 py-4 bg-white/5 rounded-2xl border border-white/10">
+        <button
+          onClick={() => {
+            localStorage.removeItem("patientId");
+            localStorage.removeItem("patientName");
+            router.push("/patients-login");
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-200 text-gray-300 hover:bg-red-500/10 hover:text-red-400 mt-4 mb-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Logout
+        </button>
+
+        <div className="px-4 py-4 bg-white/5 rounded-2xl border border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
               <User className="h-4 w-4 text-blue-400" />
@@ -284,6 +311,7 @@ function ReportUploadModal({ isOpen, onClose, onSuccess }) {
 }
 
 function ReportDetailModal({ report, open, onClose, onDelete, onRename, onAnalyze, analyzing }) {
+  const router = useRouter()
   const [newName, setNewName] = useState(report?.name || "")
   const [renaming, setRenaming] = useState(false)
 
@@ -387,7 +415,7 @@ function ReportDetailModal({ report, open, onClose, onDelete, onRename, onAnalyz
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-[0.6] bg-slate-50 flex flex-col relative border-r border-slate-100">
+           <div className="flex-[0.6] bg-slate-50 flex flex-col relative border-r border-slate-100" style={{ height: 'calc(100vh - 120px)' }}>
             <div className="flex-1 p-10 flex items-center justify-center overflow-hidden">
               <div className="w-full h-full bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden relative">
                 {report.fileUrl ? (
@@ -415,7 +443,19 @@ function ReportDetailModal({ report, open, onClose, onDelete, onRename, onAnalyz
               </a>
               <Button
                 variant="ghost"
-                onClick={() => { if (confirm("Erase this record?")) { onDelete(report.reportId); onClose(); } }}
+                onClick={async () => {
+                  const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Delete Report?',
+                    text: 'Are you sure you want to erase this record? This action cannot be undone.',
+                    showCancelButton: true,
+                    confirmButtonColor: '#EF4444',
+                    cancelButtonColor: '#6B7280',
+                    confirmButtonText: 'Yes, Delete',
+                    cancelButtonText: 'Cancel'
+                  })
+                  if (result.isConfirmed) { onDelete(report.reportId); onClose(); }
+                }}
                 className="h-12 w-12 text-rose-500 hover:bg-rose-50 rounded-xl border border-rose-100"
               >
                 <Trash2 className="h-4 w-4" />
@@ -499,12 +539,15 @@ function ReportDetailModal({ report, open, onClose, onDelete, onRename, onAnalyz
                           {report.analysis?.recommendedDoctor}
                         </p>
                       </div>
-                      <Button
-                        onClick={() => { onClose(); window.history.pushState(null, '', '?tab=doctors'); }}
-                        className="w-full h-14 bg-white hover:bg-slate-100 text-slate-900 rounded-2xl font-black text-sm relative z-10 shadow-lg flex items-center justify-center gap-2 group"
-                      >
-                        Schedule Match <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                      </Button>
+                        <Button
+                          onClick={() => {
+                            onClose();
+                            router.push(`?tab=doctors#suggested-doctors`);
+                          }}
+                           className="w-full h-14 bg-white hover:bg-slate-100 text-slate-900 rounded-2xl font-black text-sm relative z-10 shadow-lg flex items-center justify-center gap-2 group"
+                        >
+                          Schedule Match <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        </Button>
                     </div>
                   </section>
                 </div>
@@ -517,34 +560,351 @@ function ReportDetailModal({ report, open, onClose, onDelete, onRename, onAnalyz
   )
 }
 
-function ContactDoctorModal({ isOpen, onClose, doctorName }) {
+function ContactDoctorModal({ isOpen, onClose, doctorName, suggestedDoctors = [], patientId, reports = [], onBookAppointment, allDoctors = [], preSelectedDoctor = null, onSuccess }) {
   const [loading, setLoading] = useState(false)
+  const [selectedDoctor, setSelectedDoctor] = useState(null)
+  const [scheduledDate, setScheduledDate] = useState("")
+  const [scheduledTime, setScheduledTime] = useState("")
+  const [notes, setNotes] = useState("")
+  const [doctorSchedules, setDoctorSchedules] = useState([])
+  const [availableSlots, setAvailableSlots] = useState([])
+  const [selectedHospital, setSelectedHospital] = useState("")
+  const [slotsLoading, setSlotsLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  // Fetch doctor schedules when doctor changes
+  useEffect(() => {
+    if (selectedDoctor?.doctorId) {
+      fetchDoctorAvailability()
+    }
+  }, [selectedDoctor])
+
+  // Fetch available slots when date changes
+  useEffect(() => {
+    if (scheduledDate && selectedDoctor?.doctorId) {
+      fetchAvailableSlots()
+    } else {
+      setAvailableSlots([])
+    }
+  }, [scheduledDate, selectedDoctor])
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setScheduledDate("")
+      setScheduledTime("")
+      setNotes("")
+      setDoctorSchedules([])
+      setAvailableSlots([])
+
+      // Pre-select doctor: prioritize preSelectedDoctor, then first suggested
+      if (preSelectedDoctor) {
+        setSelectedDoctor(preSelectedDoctor)
+      } else if (suggestedDoctors.length > 0) {
+        setSelectedDoctor(suggestedDoctors[0])
+      } else {
+        setSelectedDoctor(null)
+      }
+    }
+  }, [isOpen, suggestedDoctors, preSelectedDoctor])
+
+  const fetchDoctorAvailability = async () => {
+    try {
+      const res = await fetch(`/api/doctors/${selectedDoctor.doctorId}/schedules`)
+      const data = await res.json()
+      if (data.success) {
+        setDoctorSchedules(data.data || [])
+      }
+    } catch (error) {
+      console.error("Error fetching schedules:", error)
+    }
+  }
+
+    const fetchAvailableSlots = async () => {
+      setSlotsLoading(true)
+      try {
+        const res = await fetch(`/api/doctors/${selectedDoctor.doctorId}/slots?date=${scheduledDate}`)
+        const data = await res.json()
+        if (data.success) {
+          setAvailableSlots(data.data?.hospitalSlots || [])
+        }
+      } catch (error) {
+        console.error("Error fetching slots:", error)
+      } finally {
+        setSlotsLoading(false)
+      }
+    }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    if (!selectedDoctor) {
+      await Swal.fire({
+        title: "Select Doctor",
+        text: "Please select a doctor to book an appointment.",
+        icon: "warning",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3B82F6",
+      })
+      return
+    }
+    if (!scheduledDate) {
+      await Swal.fire({
+        title: "Select Date",
+        text: "Please select an appointment date.",
+        icon: "warning",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3B82F6",
+      })
+      return
+    }
+    if (!scheduledTime) {
+      await Swal.fire({
+        title: "Select Time",
+        text: "Please select an appointment time.",
+        icon: "warning",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3B82F6",
+      })
+      return
+    }
+
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      toast.success(`Enquiry sent to Dr. ${doctorName}`)
+
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          doctorId: selectedDoctor.doctorId,
+          patientId: patientId,
+          reportId: null,
+          scheduledDate,
+          scheduledTime,
+          notes,
+        }),
+      })
+
+      const data = await res.json()
+      console.log("Appointment booking response:", data)
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to book appointment")
+      }
+
+      // Show SweetAlert success message
+      await Swal.fire({
+        title: "Appointment Booked!",
+        text: `Your appointment with Dr. ${selectedDoctor.name} has been scheduled for ${scheduledDate} at ${scheduledTime}`,
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3B82F6",
+        background: "#ffffff",
+        color: "#1e293b",
+        timer: 5000,
+        timerProgressBar: true,
+      })
+
+      // Callback to parent for refreshing data
+      if (onSuccess) onSuccess(data.data)
       onClose()
-    }, 1000)
+    } catch (error) {
+      // Show SweetAlert error message
+      await Swal.fire({
+        title: "Booking Failed",
+        text: error.message || "Unable to book appointment. Please try again.",
+        icon: "error",
+        confirmButtonText: "Try Again",
+        confirmButtonColor: "#ef4444",
+        background: "#ffffff",
+        color: "#1e293b",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md rounded-2xl border-none p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-4xl rounded-2xl border-none p-0 overflow-hidden max-h-[90vh]">
+        <DialogTitle className="sr-only">Book Appointment</DialogTitle>
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <Stethoscope className="h-5 w-5" /> Contact Specialist
+            <Calendar className="h-5 w-5" /> Book Appointment
           </h2>
-          <p className="text-blue-100 text-sm mt-1">Send a query to Dr. {doctorName}</p>
+          <p className="text-blue-100 text-sm mt-1">
+            {selectedDoctor 
+              ? `Schedule an appointment with Dr. ${selectedDoctor.name}` 
+              : suggestedDoctors.length > 0 
+                ? "Select a doctor and schedule your appointment"
+                : `Schedule an appointment with Dr. ${doctorName}`}
+          </p>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white rounded-2xl shadow-sm">
-          {/* Report Title */}
+         <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white rounded-2xl shadow-sm overflow-y-auto max-h-[calc(90vh-120px)]">
+           {/* Doctor Selection - ALWAYS show all suggested doctors in dropdown */}
+           <div className="space-y-2">
+             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+               <Stethoscope className="h-4 h-4 text-blue-500" /> Select Doctor
+             </Label>
+             <select
+               value={selectedDoctor?.doctorId || ""}
+               onChange={(e) => {
+                 // Find the actual doctor from ALL doctors list
+                 const doctor = allDoctors.find(d => d.doctorId === e.target.value)
+                 if (doctor) {
+                   setSelectedDoctor(doctor)
+                 }
+               }}
+               className="w-full h-11 px-4 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
+                  focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
+                  appearance-none transition-all duration-150"
+               required
+             >
+               <option value="">Select a doctor...</option>
+               {/* Show ALL registered doctors */}
+               {allDoctors.length > 0 ? (
+                 allDoctors.map((doc) => (
+                   <option key={doc.doctorId} value={doc.doctorId}>
+                     Dr. {doc.name} - {doc.specialization || 'General'}
+                   </option>
+                 ))
+               ) : (
+                 <option value="" disabled>No doctors available</option>
+               )}
+             </select>
+              <p className="text-xs text-slate-500">
+                All registered doctors are available for appointment
+              </p>
+            </div>
+
+            {/* Doctor Availability Schedule Display */}
+            {selectedDoctor && doctorSchedules.length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Hospital className="h-4 w-4 text-blue-500" /> Doctor Availability Schedule
+                </Label>
+                {doctorSchedules.map((schedule, idx) => (
+                  <div key={idx} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                    <h4 className="font-semibold text-blue-800">{schedule.hospitalName}</h4>
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-blue-700">
+                      <div>
+                        <span className="font-medium">Days:</span> {schedule.days?.join(', ')}
+                      </div>
+                      <div>
+                        <span className="font-medium">Time:</span> {schedule.startTime} - {schedule.endTime}
+                      </div>
+                      <div className="col-span-2">
+                        <span className="font-medium">Fee:</span> Rs. {schedule.consultationFee}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Hospital Selection - Faisalabad */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Hospital className="h-4 h-4 text-blue-500" /> Select Hospital (Faisalabad)
+              </Label>
+              <select
+                value={selectedHospital}
+                onChange={(e) => setSelectedHospital(e.target.value)}
+                className="w-full h-11 px-4 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
+                   focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
+                   appearance-none transition-all duration-150"
+                required
+              >
+                <option value="">Select Hospital from Faisalabad...</option>
+                {FAISALABAD_HOSPITALS.map((hospital, idx) => (
+                  <option key={idx} value={hospital}>{hospital}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Available Time Slots */}
+            {scheduledDate && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Clock className="h-4 h-4 text-blue-500" /> Available Time Slots
+                </Label>
+                
+                {slotsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                    <AlertCircle className="w-5 h-5 text-amber-600 mx-auto mb-2" />
+                    <p className="text-amber-700 text-sm">Doctor is not available on this date</p>
+                  </div>
+                ) : (
+                  availableSlots.map((hospitalSlot, idx) => (
+                    <div key={idx} className="border border-slate-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-slate-800">{hospitalSlot.hospitalName}</h4>
+                        <span className="text-xs text-slate-500">
+                          {hospitalSlot.startTime} - {hospitalSlot.endTime} • Rs. {hospitalSlot.consultationFee}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 md:grid-cols-5 gap-2">
+                        {hospitalSlot.slots.map((slot, slotIdx) => (
+                          <button
+                            key={slotIdx}
+                            type="button"
+                            disabled={slot.isBooked || slot.isPast}
+                            onClick={() => {
+                              setScheduledTime(slot.time)
+                              setSelectedHospital(hospitalSlot.hospitalName)
+                            }}
+                            className={`py-2 px-2 rounded-lg text-xs font-medium transition-all ${
+                              slot.isPast
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : slot.isBooked
+                                ? 'bg-red-100 text-red-700 border border-red-200 cursor-not-allowed'
+                                : scheduledTime === slot.time && selectedHospital === hospitalSlot.hospitalName
+                                ? 'bg-green-600 text-white shadow-md'
+                                : 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 cursor-pointer'
+                            }`}
+                          >
+                            {slot.time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {/* Slots Legend */}
+                <div className="flex flex-wrap gap-4 text-xs pt-2 border-t">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded bg-green-100 border border-green-200"></div>
+                    <span className="text-slate-600">Available</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded bg-red-100 border border-red-200"></div>
+                    <span className="text-slate-600">Booked</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded bg-slate-100"></div>
+                    <span className="text-slate-600">Past</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          {/* Appointment Date */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium text-gray-700">Report Title</Label>
+            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-500" /> Appointment Date
+            </Label>
             <Input
-              placeholder="Enter report title"
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
               required
               className="w-full h-9 px-4 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
                  focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
@@ -552,10 +912,15 @@ function ContactDoctorModal({ isOpen, onClose, doctorName }) {
             />
           </div>
 
+          {/* Appointment Time */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium text-gray-700">Your Name</Label>
+            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-500" /> Appointment Time
+            </Label>
             <Input
-              placeholder="Enter your name"
+              type="time"
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
               required
               className="w-full h-9 px-4 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
                  focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
@@ -563,39 +928,16 @@ function ContactDoctorModal({ isOpen, onClose, doctorName }) {
             />
           </div>
 
+          {/* Notes */}
           <div className="space-y-1">
-            <Label className="text-sm font-medium text-gray-700">Phone / Email</Label>
-            <Input
-              placeholder="How can they reach you?"
-              required
-              className="w-full h-9 px-4 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
-                 focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
-                 transition-all duration-150"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-sm font-medium text-gray-700">Select Type</Label>
-            <select
-              className="w-full h-9 px-4 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
-                 focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
-                 appearance-none transition-all duration-150"
-              required
-            >
-              {/* your existing options */}
-              <option value="">Select category...</option>
-              {/* ... */}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-sm font-medium text-gray-700">Message</Label>
+            <Label className="text-sm font-medium text-gray-700">Notes (Optional)</Label>
             <textarea
-              className="w-full min-h-[90px] px-4 py-2.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full min-h-[80px] px-4 py-2.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 
                  focus:border-[#3B75FD] focus:ring-1 focus:ring-[#3B75FD]/30 focus:outline-none 
                  resize-y transition-all duration-150"
-              placeholder="Briefly describe your concern..."
-              required
+              placeholder="Describe your symptoms or concerns..."
             />
           </div>
 
@@ -622,16 +964,16 @@ function ContactDoctorModal({ isOpen, onClose, doctorName }) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Send className="h-4 w-4" />
-                  Send
+                  <CalendarPlus className="h-4 w-4" />
+                  Book Appointment
                 </>
               )}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog>
-  )
+       </Dialog>
+   )
 }
 
 function PatientDashboardContent() {
@@ -643,7 +985,12 @@ function PatientDashboardContent() {
   const [patientId, setPatientId] = useState("")
   const [reports, setReports] = useState([])
   const [suggestedDoctors, setSuggestedDoctors] = useState([])
+  const [allDoctors, setAllDoctors] = useState([])
   const [prescriptions, setPrescriptions] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [appointments, setAppointments] = useState([])
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true)
 
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
@@ -652,6 +999,7 @@ function PatientDashboardContent() {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showContactModal, setShowContactModal] = useState(false)
   const [contactDoctorName, setContactDoctorName] = useState("")
+  const [preSelectedDoctor, setPreSelectedDoctor] = useState(null)
 
   const loadReports = async (pidParam) => {
     try {
@@ -662,10 +1010,67 @@ function PatientDashboardContent() {
       if (data.success) setReports(data.data || [])
     } catch (err) {
       console.error(err)
+   }
+   }
+
+    const fetchAppointments = async (pid) => {
+      const id = pid || patientId || localStorage.getItem("patientId")
+      if (!id) return
+      try {
+        setAppointmentsLoading(true)
+        const res = await fetch(`/api/appointments?patientId=${id}`)
+        const data = await res.json()
+        if (data.success) setAppointments(data.data || [])
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setAppointmentsLoading(false)
+      }
+    }
+
+   const fetchNotifications = async (pid) => {
+    try {
+      const id = pid || patientId || localStorage.getItem("patientId")
+      if (!id) return
+      const res = await fetch(`/api/notifications/${id}`)
+      const data = await res.json()
+      if (data.success) setNotifications(data.data || [])
+    } catch (err) {
+      console.error(err)
     }
   }
 
-  useEffect(() => {
+  const markNotificationsAsRead = async (notificationIds) => {
+    try {
+      const pid = patientId || localStorage.getItem("patientId")
+      if (!pid || !notificationIds.length) return
+      await fetch(`/api/notifications/${pid}/read`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds }),
+      })
+      // Refresh notifications
+      fetchNotifications()
+    } catch (err) {
+      console.error(err)
+     }
+   }
+
+  // Handle booking appointment - opens ContactDoctorModal with doctor pre-selected
+  const handleBookAppointment = (doctor, report = null) => {
+    setContactDoctorName(doctor.name || doctor.doctorName || "Specialist")
+    setPreSelectedDoctor(doctor)
+    setShowContactModal(true)
+  }
+
+  // Handle book doctor from report analysis (same logic)
+  const onBookDoctor = (doctor, report) => {
+    setContactDoctorName(doctor.name || doctor.doctorName || "Specialist")
+    setPreSelectedDoctor(doctor)
+    setShowContactModal(true)
+  }
+
+    useEffect(() => {
     const pid = localStorage.getItem("patientId")
     const pname = localStorage.getItem("patientName") || "Patient"
 
@@ -681,24 +1086,67 @@ function PatientDashboardContent() {
       setLoading(true)
       try {
         await loadReports(pid)
-        const [docRes, presRes] = await Promise.all([
+        const [docRes, presRes, aptRes, allDocRes, notifRes] = await Promise.all([
           fetch(`/api/patients/${pid}/suggested-doctors`),
-          fetch(`/api/patients/${pid}/prescriptions`),
+          fetch(`/api/prescriptions?patientId=${pid}`),
+          fetch(`/api/appointments?patientId=${pid}`),
+          fetch(`/api/doctors/all`),
+          fetch(`/api/notifications/${pid}`),
         ])
         const docJson = await docRes.json()
         const presJson = await presRes.json()
+        const aptJson = await aptRes.json()
+        const allDocJson = await allDocRes.json()
+        const notifJson = await notifRes.json()
         if (docJson.success) setSuggestedDoctors(docJson.data || [])
         if (presJson.success) setPrescriptions(presJson.data || [])
+        if (aptJson.success) setAppointments(aptJson.data || [])
+        if (allDocJson.success) setAllDoctors(allDocJson.data || [])
+        if (notifJson.success) setNotifications(notifJson.data || [])
       } catch (err) {
         toast.error("Network issue loading dashboard")
       } finally {
         setLoading(false)
+        setAppointmentsLoading(false)
       }
     }
     initData()
-  }, [])
+    
+     // Auto refresh prescriptions every 30 seconds
+    const refreshInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/prescriptions?patientId=${pid}`)
+        const data = await res.json()
+        if (data.success) {
+          setPrescriptions(data.data || [])
+        }
+      } catch (err) {}
+    }, 30000)
+    
+     return () => clearInterval(refreshInterval)
+   }, [])
 
-  const handleAnalyze = async (specificReportId = null) => {
+   // Scroll to suggested doctors section when tab changes to doctors with hash
+   useEffect(() => {
+     if (activeTab === "doctors" && window.location.hash === "#suggested-doctors") {
+       setTimeout(() => {
+         const element = document.getElementById("suggested-doctors")
+         if (element) {
+           const headerElement = document.querySelector('header[class*="sticky"]')
+           const headerOffset = headerElement ? headerElement.offsetHeight : 0
+           const elementPosition = element.getBoundingClientRect().top + window.pageYOffset
+           const offsetPosition = elementPosition - headerOffset - 20
+
+           window.scrollTo({
+             top: offsetPosition,
+             behavior: "smooth"
+           })
+         }
+       }, 100)
+     }
+   }, [activeTab])
+
+   const handleAnalyze = async (specificReportId = null) => {
     try {
       setAnalyzing(true)
       let res;
@@ -783,7 +1231,7 @@ function PatientDashboardContent() {
     <div className="min-h-screen flex bg-slate-50/50">
       <PatientSidebar />
 
-      <div className="flex-1 ml-72 flex flex-col min-h-screen">
+      <div className="dashboard-content flex-1 flex flex-col min-h-screen">
         <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-slate-200">
           <div className="px-10 py-5 flex items-center justify-between">
             <div>
@@ -792,6 +1240,74 @@ function PatientDashboardContent() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Notifications Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition-all"
+                >
+                  <Bell className="h-5 w-5 text-slate-600" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {notifications.filter(n => !n.read).length}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 max-h-96 overflow-y-auto z-50">
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                      <h3 className="font-bold text-slate-900">Notifications</h3>
+                      {notifications.filter(n => !n.read).length > 0 && (
+                        <button
+                          onClick={() => markNotificationsAsRead(notifications.filter(n => !n.read).map(n => n._id))}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400">
+                          <BellOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((notif, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-4 border-b border-slate-100 hover:bg-slate-50 transition-all cursor-pointer ${!notif.read ? 'bg-blue-50' : ''}`}
+                            onClick={() => {
+                              if (!notif.read) {
+                                markNotificationsAsRead([notif._id])
+                              }
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${notif.type === 'prescription' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {notif.type === 'prescription' ? <FileText className="h-5 w-5" /> : <Activity className="h-5 w-5" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-slate-900 text-sm">{notif.title}</p>
+                                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{notif.message}</p>
+                                <p className="text-xs text-slate-400 mt-2">
+                                  {new Date(notif.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              {!notif.read && (
+                                <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button
                 onClick={() => setShowUploadModal(true)}
                 className="h-11 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all border-0 transform hover:-translate-y-0.5"
@@ -809,7 +1325,7 @@ function PatientDashboardContent() {
           {activeTab === "overview" && (
             <div className="space-y-12">
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+               <div className="grid-responsive">
                 {[
                   { label: "Reports", value: reports.length, icon: FileText, color: "bg-blue-100 text-blue-600" },
                   { label: "Analyzed", value: reports.filter(r => r.status === "analyzed").length, icon: CheckCircle2, color: "bg-emerald-100 text-emerald-600" },
@@ -846,7 +1362,7 @@ function PatientDashboardContent() {
                       </div>
                     </div>
                     <Button
-                      onClick={() => router.push("?tab=doctors")}
+                        onClick={() => router.push("?tab=doctors")}
                       className="bg-white text-blue-600 hover:bg-blue-50 rounded-2xl px-8 h-12 font-bold transition-all shadow-xl"
                     >
                       View Recommendations <ChevronRight className="h-4 w-4 ml-2" />
@@ -951,8 +1467,18 @@ function PatientDashboardContent() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => {
-                            if (confirm("Delete this?")) {
+                          onClick={async () => {
+                            const result = await Swal.fire({
+                              icon: 'warning',
+                              title: 'Delete Report?',
+                              text: 'Are you sure you want to delete this report?',
+                              showCancelButton: true,
+                              confirmButtonColor: '#EF4444',
+                              cancelButtonColor: '#6B7280',
+                              confirmButtonText: 'Yes, Delete',
+                              cancelButtonText: 'Cancel'
+                            })
+                            if (result.isConfirmed) {
                               deleteReportLocally(report.reportId);
                               fetch(`/api/lab-reports/${report.reportId}`, { method: "DELETE" });
                             }
@@ -970,12 +1496,27 @@ function PatientDashboardContent() {
           )}
 
           {activeTab === "doctors" && (
-            <div className="space-y-10">
+            <div id="suggested-doctors" className="space-y-10">
               <div>
                 <h2 className="text-3xl font-black text-slate-900">Suggested Doctors</h2>
                 <p className="text-slate-400 font-medium">Specialists recommended based on your analyzed reports.</p>
               </div>
 
+              {/* Doctor Cards with Booking */}
+              {suggestedDoctors.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {suggestedDoctors.map((doctor) => (
+                      <DoctorProfileCard
+                        key={doctor.doctorId}
+                        doctor={doctor}
+                        onBookAppointment={handleBookAppointment}
+                        report={reports.find(r => r.status === "analyzed")}
+                      />
+                  ))}
+                </div>
+              )}
+
+              {/* Table View - Disease based */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -1055,8 +1596,20 @@ function PatientDashboardContent() {
                                 <Button
                                   size="sm"
                                   onClick={() => {
-                                    setContactDoctorName(report.analysis?.recommendedDoctor || "Specialist");
-                                    setShowContactModal(true);
+                                    // Find the suggested doctor from the list
+                                    const doctorName = report.analysis?.recommendedDoctor;
+                                    // First try suggestedDoctors, then allDoctors
+                                    let doctor = suggestedDoctors.find(d => doctorName?.includes(d.name));
+                                    if (!doctor) {
+                                      doctor = allDoctors.find(d => doctorName?.includes(d.name));
+                                    }
+                                    if (doctor) {
+                                      handleBookAppointment(doctor, report)
+                                    } else {
+                                      // If no matching doctor, show contact modal
+                                      setContactDoctorName(report.analysis?.recommendedDoctor || "Specialist")
+                                      setShowContactModal(true)
+                                    }
                                   }}
                                   className={`
         inline-flex items-center justify-center
@@ -1089,6 +1642,88 @@ function PatientDashboardContent() {
             </div>
           )}
 
+          {activeTab === "appointments" && (
+            <div className="space-y-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900">My Appointments</h2>
+                  <p className="text-slate-400 font-medium">View and manage your scheduled consultations.</p>
+                </div>
+                <Button
+                    onClick={() => router.push("?tab=doctors")}
+                  className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#3875FD] to-indigo-600 hover:from-[#3875FD]/90 hover:to-indigo-600/90 text-white shadow-lg shadow-[#3875FD]/25 transition-all"
+                >
+                  <CalendarPlus className="h-5 w-5 mr-2" /> Book New
+                </Button>
+              </div>
+
+              {appointmentsLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+                </div>
+              ) : appointments.length === 0 ? (
+                <Card className="border-none shadow-sm rounded-3xl p-20 text-center">
+                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Calendar className="h-10 w-10 text-slate-200" />
+                  </div>
+                  <h4 className="text-xl font-bold text-slate-400">No appointments yet</h4>
+                  <p className="text-slate-300 max-w-sm mx-auto mt-2">Book an appointment with a specialist after uploading and analyzing your reports.</p>
+                  <Button
+                     onClick={() => router.push("?tab=doctors")}
+                    className="mt-6 h-11 px-6 rounded-xl bg-gradient-to-r from-[#3875FD] to-indigo-600 hover:from-[#3875FD]/90 hover:to-indigo-600/90 text-white"
+                  >
+                    Find a Doctor
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {appointments.map((apt, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-slate-100 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          apt.status === "confirmed" ? "bg-emerald-50 text-emerald-600" :
+                          apt.status === "completed" ? "bg-blue-50 text-blue-600" :
+                          apt.status === "cancelled" ? "bg-red-50 text-red-600" :
+                          "bg-amber-50 text-amber-600"
+                        }`}>
+                          {apt.status === "confirmed" ? <CheckCircle className="h-6 w-6" /> :
+                           apt.status === "completed" ? <Activity className="h-6 w-6" /> :
+                           apt.status === "cancelled" ? <XCircle className="h-6 w-6" /> :
+                           <Clock3 className="h-6 w-6" />}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-900">{apt.doctorName || "Doctor Consultation"}</h4>
+                          <p className="text-sm text-slate-500">
+                            {apt.scheduledDate ? new Date(apt.scheduledDate).toLocaleDateString() : "Date not set"}
+                            {apt.scheduledTime && ` at ${apt.scheduledTime}`}
+                          </p>
+                          {apt.diseaseDetected && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              For: {apt.diseaseDetected}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={`${
+                          apt.status === "confirmed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                          apt.status === "completed" ? "bg-blue-50 text-blue-600 border-blue-100" :
+                          apt.status === "cancelled" ? "bg-red-50 text-red-600 border-red-100" :
+                          "bg-amber-50 text-amber-600 border-amber-100"
+                        }`}>
+                          {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "prescriptions" && (
             <div className="space-y-10">
               <div>
@@ -1096,7 +1731,7 @@ function PatientDashboardContent() {
                 <p className="text-slate-400 font-medium">Digital prescriptions issued by your practitioners.</p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
                 {prescriptions.length === 0 ? (
                   <Card className="col-span-full border-none shadow-sm rounded-3xl p-20 text-center">
                     <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -1113,21 +1748,67 @@ function PatientDashboardContent() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="text-xl font-black text-slate-900">{pres.medicineName}</h4>
-                          <Badge className="bg-blue-50 text-blue-600 border-none font-bold">{pres.dosage}</Badge>
+                          <div>
+                            <h4 className="text-xl font-black text-slate-900">{pres.diagnosis || "General Checkup"}</h4>
+                            <p className="text-sm font-bold text-slate-400">{pres.date}</p>
+                          </div>
+                          {pres.severity && (
+                            <Badge className={`${
+                              pres.severity === 'mild' ? 'bg-green-50 text-green-600' :
+                              pres.severity === 'moderate' ? 'bg-yellow-50 text-yellow-600' :
+                              'bg-red-50 text-red-600'
+                            } border-none font-bold`}>
+                              {pres.severity.toUpperCase()}
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-sm font-bold text-slate-400 mb-6">{pres.frequency} • {pres.duration}</p>
 
-                        <div className="p-4 bg-slate-50 rounded-2xl text-xs text-slate-500 leading-relaxed italic">
-                          "{pres.instructions}"
+                        {/* Show all medicines */}
+                        <div className="mt-4 space-y-2">
+                          {(pres.medicines || [pres]).slice(0, 5).map((med, midx) => (
+                            <div key={midx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                              <div>
+                                <p className="font-bold text-slate-800">{med.name || pres.medicineName}</p>
+                                <p className="text-xs text-slate-500">{med.dosage || pres.dosage} • {med.frequency || pres.frequency} • {med.duration || pres.duration}</p>
+                              </div>
+                            </div>
+                          ))}
+                          {(pres.medicines?.length || 0) > 5 && (
+                            <p className="text-xs text-slate-400">+{(pres.medicines?.length || 0) - 5} more medicines</p>
+                          )}
                         </div>
+
+                        {/* Lab Tests */}
+                        {pres.labTests && pres.labTests.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-xs font-bold text-slate-400 mb-2">Lab Tests:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {(pres.labTests || []).slice(0, 3).map((test, tidx) => (
+                                <Badge key={tidx} variant="outline" className="text-xs">{test}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Advice */}
+                        {pres.advice && (
+                          <div className="mt-4 p-3 bg-green-50 rounded-xl">
+                            <p className="text-xs font-bold text-green-700">Advice:</p>
+                            <p className="text-sm text-green-800">{pres.advice}</p>
+                          </div>
+                        )}
 
                         <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-slate-200" />
-                            <span className="text-xs font-bold text-slate-700">Dr. {pres.doctorName}</span>
+                            <div>
+                              <span className="text-xs font-bold text-slate-700">Dr. {pres.doctorName}</span>
+                              {pres.clinicName && <span className="text-xs text-slate-400 block">{pres.clinicName}</span>}
+                            </div>
                           </div>
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{pres.date}</span>
+                          {pres.followUpDate && (
+                            <span className="text-[10px] font-black text-slate-300">Follow-up: {pres.followUpDate}</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1152,12 +1833,24 @@ function PatientDashboardContent() {
         onRename={renameReportLocally}
         onAnalyze={handleAnalyze}
         analyzing={analyzing}
+        onBookDoctor={handleBookAppointment}
+        suggestedDoctors={suggestedDoctors}
       />
-      <ContactDoctorModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        doctorName={contactDoctorName}
-      />
+       <ContactDoctorModal
+         isOpen={showContactModal}
+         onClose={() => {
+           setShowContactModal(false)
+           setPreSelectedDoctor(null) // reset pre-selection
+         }}
+         doctorName={contactDoctorName}
+         suggestedDoctors={suggestedDoctors}
+         allDoctors={allDoctors}
+         patientId={patientId}
+         reports={reports}
+         onBookAppointment={handleBookAppointment}
+         preSelectedDoctor={preSelectedDoctor}
+         onSuccess={fetchAppointments}
+       />
     </div>
   )
 }

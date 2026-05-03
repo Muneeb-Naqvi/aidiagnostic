@@ -4,7 +4,8 @@ import DoctorAPI from "@/lib/doctorAPI";
 export async function GET(request, { params }) {
   try {
     await getDB();
-    const doctor = await DoctorAPI.getDoctorById(params.doctorId);
+    const { doctorId } = await params;
+    const doctor = await DoctorAPI.getDoctorById(doctorId);
 
     if (!doctor) {
       return new Response(JSON.stringify({ success: false, error: "Doctor not found" }), { status: 404 });
@@ -21,7 +22,8 @@ export async function PUT(request, { params }) {
   try {
     await getDB();
     const body = await request.json();
-    const doctor = await DoctorAPI.updateDoctor(params.doctorId, body);
+    const { doctorId } = await params;
+    const doctor = await DoctorAPI.updateDoctor(doctorId, body);
 
     if (!doctor) {
       return new Response(JSON.stringify({ success: false, error: "Doctor not found" }), { status: 404 });
@@ -37,7 +39,8 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     await getDB();
-    const result = await DoctorAPI.deleteDoctor(params.doctorId);
+    const { doctorId } = await params;
+    const result = await DoctorAPI.deleteDoctor(doctorId);
 
     if (result.deletedCount === 0) {
       return new Response(JSON.stringify({ success: false, error: "Doctor not found" }), { status: 404 });

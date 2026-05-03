@@ -28,6 +28,7 @@ import {
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { Starfield } from "@/components/starfield"
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -197,6 +198,9 @@ export default function Home() {
       </button>
 
       <main className="bg-[#FFFDFE] text-[#000004] relative overflow-x-hidden">
+        {/* Starfield Background - Calming Interactive Animation */}
+        <Starfield starCount={120} speed={0.015} mouseInfluence={0.03} className="opacity-60" />
+
         {/* Subtle global AI pulse background */}
         <div className="fixed inset-0 pointer-events-none opacity-5">
           <div className="absolute inset-0 bg-gradient-to-br from-[#3B75FD]/5 via-transparent to-[#3B75FD]/5 animate-pulse-slow" />

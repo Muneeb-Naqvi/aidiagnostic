@@ -9,7 +9,7 @@ import {
   Zap,
   Users,
   Brain,
-  Stethoscope,
+  Stethoscope,         
   Activity,
   ShieldCheck
 } from "lucide-react"
