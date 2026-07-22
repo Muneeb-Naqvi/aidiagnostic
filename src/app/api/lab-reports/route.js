@@ -1,9 +1,8 @@
 import getDB from "@/config/database"
-import LabReportAPI from "@/lib/labReportAPI"
-import { NextResponse } from "next/server"
-import fs from "fs/promises"
-import path from "path"
-import { sendEmail } from "@/config/email"
+ import LabReportAPI from "@/lib/labReportAPI"
+ import { NextResponse } from "next/server"
+ import { sendEmail } from "@/config/email"
+ import { uploadFile } from "@/config/cloudinary"
 
 /* =========================
    SAVE ANALYSIS (PATCH)
@@ -115,6 +114,8 @@ export async function GET(req) {
 
     const reports = await LabReportAPI.getAll({ patientId, db })
 
+    console.log("[API /lab-reports] Raw reports from DB:", JSON.stringify(reports, null, 2))
+
     const formattedReports = reports.map((r) => ({
       reportId: r._id.toString(),
       name: r.reportTitle,
@@ -126,6 +127,7 @@ export async function GET(req) {
       analysis: r.analysis || null,
     }))
 
+    console.log("[API /lab-reports] Formatted reports:", JSON.stringify(formattedReports, null, 2))
     return NextResponse.json({ success: true, data: formattedReports })
   } catch (error) {
     console.error("[GET /lab-reports]", error)
@@ -164,20 +166,16 @@ export async function POST(req) {
       )
     }
 
-    /* 📁 Save file locally */
+/* ☁️ Upload file to Cloudinary */
+    const fileType = file.type || "application/octet-stream"
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`
-    const uploadDir = path.join(process.cwd(), "public/uploads")
+    const cloudinaryResult = await uploadFile(buffer, "medical-reports", fileType)
+    const fileUrl = cloudinaryResult.url
 
-    await fs.mkdir(uploadDir, { recursive: true })
-
-    const filePath = path.join(uploadDir, fileName)
-    await fs.writeFile(filePath, buffer)
-
-    const fileUrl = `/uploads/${fileName}`
-    const fileType = file.type || "application/octet-stream"
+    console.log("[UPLOAD] Cloudinary result:", cloudinaryResult)
+    console.log("[UPLOAD] fileUrl stored:", fileUrl)
 
     /* 💾 Save DB record */
     const saved = await LabReportAPI.createReport({

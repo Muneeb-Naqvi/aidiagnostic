@@ -13,11 +13,11 @@ export function AdminHeader({ title, subtitle }) {
     >
       <div className="flex items-center justify-between px-6 md:px-8 py-4 max-w-screen-2xl mx-auto">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#0A0A0F] dark:text-gray-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#0A0A0F] dark:text-black">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+            <p className="text-sm text-black dark:text-[#94A3B8] mt-0.5">
               {subtitle}
             </p>
           )}
@@ -38,7 +38,7 @@ export function AdminHeader({ title, subtitle }) {
             className="p-2.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
             aria-label="Settings"
           >
-            <Settings className="w-5 h-5 text-[#64748B] dark:text-[#94A3B8]" />
+            <Settings className="w-5 h-5 text-black dark:text-[#94A3B8]" />
           </button>
 
           {/* User/Profile */}
@@ -50,7 +50,7 @@ export function AdminHeader({ title, subtitle }) {
               A
             </div>
             {/* Optional: show name on larger screens */}
-            {/* <span className="hidden sm:inline text-sm font-medium text-[#0A0A0F] dark:text-gray-200 group-hover:text-[#3B82F6] transition-colors">
+            {/* <span className="hidden sm:inline text-sm font-medium text-[#0A0A0F] dark:text-black group-hover:text-[#3B82F6] transition-colors">
               Admin
             </span> */}
           </button>

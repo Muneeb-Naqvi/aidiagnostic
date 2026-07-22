@@ -201,7 +201,7 @@ export function DoctorAvailabilityManager({ doctorId }) {
               className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-5"
             >
               <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-slate-800">Hospital Schedule #{index + 1}</h3>
+                <h3 className="font-semibold text-black">Hospital Schedule #{index + 1}</h3>
                 {schedules.length > 1 && (
                   <button
                     onClick={() => removeSchedule(index)}
@@ -237,7 +237,7 @@ export function DoctorAvailabilityManager({ doctorId }) {
                       className={`py-2.5 text-xs font-medium rounded-lg transition-all ${
                         schedule.days.includes(day)
                           ? 'bg-blue-600 text-white shadow-md'
-                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                          : 'bg-slate-200 text-black hover:bg-slate-300'
                       }`}
                     >
                       {day.slice(0, 3)}
@@ -297,7 +297,7 @@ export function DoctorAvailabilityManager({ doctorId }) {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     schedule.isActive
                       ? 'bg-green-100 text-green-700'
-                      : 'bg-slate-100 text-slate-500'
+                      : 'bg-slate-100 text-black'
                   }`}
                 >
                   {schedule.isActive ? <CheckCircle className="w-4 h-4 inline mr-2" /> : <XCircle className="w-4 h-4 inline mr-2" />}
@@ -338,7 +338,7 @@ export function DoctorAvailabilityManager({ doctorId }) {
                 min={new Date().toISOString().split('T')[0]}
               />
             </div>
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-black">
               {new Date(selectedDate).toLocaleDateString('en-PK', { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
           </div>
@@ -346,7 +346,7 @@ export function DoctorAvailabilityManager({ doctorId }) {
           {/* Time Slots Grid */}
           <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
             {timeSlots.length === 0 ? (
-              <div className="col-span-full text-center py-10 text-slate-400">
+              <div className="col-span-full text-center py-10 text-black">
                 <AlertCircle className="w-8 h-8 mx-auto mb-2" />
                 No availability set for this date
               </div>
@@ -357,7 +357,7 @@ export function DoctorAvailabilityManager({ doctorId }) {
                   whileHover={{ scale: 1.05 }}
                   className={`p-3 rounded-xl text-center text-sm font-medium transition-all ${
                     slot.isPast
-                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      ? 'bg-slate-100 text-black cursor-not-allowed'
                       : slot.isBooked
                       ? 'bg-red-100 text-red-700 border border-red-200'
                       : 'bg-green-100 text-green-700 border border-green-200 cursor-pointer hover:bg-green-200'
@@ -374,15 +374,15 @@ export function DoctorAvailabilityManager({ doctorId }) {
           <div className="flex flex-wrap gap-4 justify-center pt-4 border-t">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-green-100 border border-green-200"></div>
-              <span className="text-sm text-slate-600">Available</span>
+              <span className="text-sm text-black">Available</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-red-100 border border-red-200"></div>
-              <span className="text-sm text-slate-600">Booked</span>
+              <span className="text-sm text-black">Booked</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-slate-100"></div>
-              <span className="text-sm text-slate-600">Past</span>
+              <span className="text-sm text-black">Past</span>
             </div>
           </div>
         </CardContent>

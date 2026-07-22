@@ -85,13 +85,13 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className="text-[#FFFDFD] hover:text-[#80A0B5] transition-colors font-medium"
+                  className="text-[#FFFDFD] hover:text-black transition-colors font-medium"
                 >
                   {item.label}
                 </Link>
               ))}
 
-              <p className="text-sm text-[#80A0B5] mt-6">
+              <p className="text-sm text-black mt-6">
                 AI-Powered Medical Diagnosis & Care
               </p>
             </div>

@@ -79,7 +79,7 @@ export function PrescriptionHistory({
       case "severe":
         return { bg: "bg-red-100", text: "text-red-800", border: "border-red-300" }
       default:
-        return { bg: "bg-gray-100", text: "text-gray-800", border: "border-gray-300" }
+        return { bg: "bg-gray-100", text: "text-black", border: "border-gray-300" }
     }
   }
 
@@ -166,7 +166,7 @@ export function PrescriptionHistory({
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-[#020331]">{stats.total}</p>
-                  <p className="text-sm text-[#80A0B5]">Total Prescriptions</p>
+                  <p className="text-sm text-black">Total Prescriptions</p>
                 </div>
               </div>
             </CardContent>
@@ -179,7 +179,7 @@ export function PrescriptionHistory({
                   <span className="text-green-600 font-bold">{stats.bySeverity.mild}</span>
                 </div>
                 <div>
-                  <p className="text-sm text-[#80A0B5]">Mild Cases</p>
+                  <p className="text-sm text-black">Mild Cases</p>
                 </div>
               </div>
             </CardContent>
@@ -192,7 +192,7 @@ export function PrescriptionHistory({
                   <span className="text-yellow-600 font-bold">{stats.bySeverity.moderate}</span>
                 </div>
                 <div>
-                  <p className="text-sm text-[#80A0B5]">Moderate Cases</p>
+                  <p className="text-sm text-black">Moderate Cases</p>
                 </div>
               </div>
             </CardContent>
@@ -205,7 +205,7 @@ export function PrescriptionHistory({
                   <span className="text-red-600 font-bold">{stats.bySeverity.severe}</span>
                 </div>
                 <div>
-                  <p className="text-sm text-[#80A0B5]">Severe Cases</p>
+                  <p className="text-sm text-black">Severe Cases</p>
                 </div>
               </div>
             </CardContent>
@@ -219,7 +219,7 @@ export function PrescriptionHistory({
           <CardContent className="pt-4">
             <div className="flex gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#80A0B5]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black" />
                 <Input
                   placeholder="Search by diagnosis, doctor, or medicine..."
                   value={searchTerm}
@@ -258,9 +258,9 @@ export function PrescriptionHistory({
       {filteredPrescriptions.length === 0 ? (
         <Card className="border border-[#3875FD]/30">
           <CardContent className="pt-10 pb-10 text-center">
-            <FileText className="w-12 h-12 mx-auto text-[#80A0B5] mb-4" />
+            <FileText className="w-12 h-12 mx-auto text-black mb-4" />
             <h3 className="text-lg font-semibold text-[#020331]">No Prescriptions Found</h3>
-            <p className="text-[#80A0B5]">
+            <p className="text-black">
               {searchTerm || filterSeverity !== "all" || filterDoctor !== "all"
                 ? "Try adjusting your search or filters"
                 : "Your prescription history will appear here"}
@@ -301,7 +301,7 @@ export function PrescriptionHistory({
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-[#80A0B5]">
+                          <div className="flex items-center gap-4 mt-1 text-sm text-black">
                             <span className="flex items-center gap-1">
                               <User className="w-3 h-3" />
                               {prescription.doctorName || "Doctor"}
@@ -332,9 +332,9 @@ export function PrescriptionHistory({
                           PDF
                         </Button>
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-[#80A0B5]" />
+                          <ChevronUp className="w-5 h-5 text-black" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-[#80A0B5]" />
+                          <ChevronDown className="w-5 h-5 text-black" />
                         )}
                       </div>
                     </div>
@@ -356,7 +356,7 @@ export function PrescriptionHistory({
                                 {prescription.medicines?.map((med, i) => (
                                   <div key={i} className="p-3 bg-gray-50 rounded-lg">
                                     <p className="font-medium text-[#020331]">{med.name}</p>
-                                    <p className="text-sm text-[#80A0B5]">
+                                    <p className="text-sm text-black">
                                       {med.dosage} • {med.frequency} • {med.duration}
                                     </p>
                                   </div>
@@ -380,18 +380,18 @@ export function PrescriptionHistory({
                               {prescription.advice && (
                                 <div>
                                   <h4 className="font-semibold text-[#020331] mb-2">Advice</h4>
-                                  <p className="text-sm text-[#80A0B5]">{prescription.advice}</p>
+                                  <p className="text-sm text-black">{prescription.advice}</p>
                                 </div>
                               )}
 
                               {prescription.notes && (
                                 <div>
                                   <h4 className="font-semibold text-[#020331] mb-2">Notes</h4>
-                                  <p className="text-sm text-[#80A0B5]">{prescription.notes}</p>
+                                  <p className="text-sm text-black">{prescription.notes}</p>
                                 </div>
                               )}
 
-                              <div className="text-xs text-[#80A0B5]">
+                              <div className="text-xs text-black">
                                 Rx ID: {prescription.prescriptionId}
                               </div>
                             </div>

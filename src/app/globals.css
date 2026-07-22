@@ -69,7 +69,35 @@ body {
 
 /* Dashboard Content Padding */
 .dashboard-content {
-  @apply ml-0 md:ml-72 p-4 sm:p-6 lg:p-10;
+  @apply ml-0 md:ml-64 p-4 sm:p-6 lg:p-10;
+}
+
+/* Mobile Reports Grid */
+.reports-grid-mobile {
+  @apply grid grid-cols-1 gap-3 auto-rows-fr;
+}
+
+@media (min-width: 640px) {
+  .reports-grid-mobile {
+    @apply grid-cols-2 gap-4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .reports-grid-mobile {
+    @apply grid-cols-3 gap-6;
+  }
+}
+
+/* Mobile header spacing */
+.mobile-header-offset {
+  padding-top: 4rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-header-offset {
+    padding-top: 0;
+  }
 }
 
 /* Modal Responsiveness */

@@ -1,19 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { LogOut, LayoutDashboard, Users, CheckCircle, Plus } from "lucide-react"
+import { LogOut, LayoutDashboard, Users, CheckCircle, Plus, CreditCard } from "lucide-react"
 
 export function AdminSidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const activeTab = searchParams.get("tab") || "overview"
 
   const menuItems = [
-    { label: "Dashboard", href: "/admin-dashboard", icon: LayoutDashboard },
-    { label: "Doctor Requests", href: "/admin-dashboard?tab=requests", icon: Users },
-    { label: "Approved Doctors", href: "/admin-dashboard?tab=approved", icon: CheckCircle },
-    { label: "Add Doctor", href: "/admin-dashboard?tab=add-doctor", icon: Plus },
+    { label: "Dashboard", href: "/admin-dashboard", icon: LayoutDashboard, tab: "overview" },
+    { label: "Doctor Requests", href: "/admin-dashboard?tab=requests", icon: Users, tab: "requests" },
+    { label: "Approved Doctors", href: "/admin-dashboard?tab=approved", icon: CheckCircle, tab: "approved" },
+    { label: "Add Doctor", href: "/admin-dashboard?tab=add-doctor", icon: Plus, tab: "add-doctor" },
+    { label: "Platform Fees", href: "/admin-dashboard?tab=payments", icon: CreditCard, tab: "payments" },
   ]
 
   const handleLogout = () => {
@@ -45,8 +48,7 @@ export function AdminSidebar() {
       <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href || 
-                          (item.href.includes("?tab=") && pathname.startsWith("/admin-dashboard"))
+          const isActive = activeTab === item.tab
 
           return (
             <Link

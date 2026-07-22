@@ -503,6 +503,12 @@ export function PrescriptionModal({
     setSaving(true)
     try {
       const doctorIdToUse = doctorId || localStorage.getItem("doctorId")
+      if (!doctorIdToUse) {
+        throw new Error("Doctor ID is missing. Please log in again.")
+      }
+      if (!patientId) {
+        throw new Error("Patient ID is missing. Please select a patient.")
+      }
       console.log("[PrescriptionModal] Saving prescription...", {
         doctorId: doctorIdToUse,
         doctorName,
@@ -521,34 +527,34 @@ export function PrescriptionModal({
        const res = await fetch("/api/prescriptions", {
          method: "POST",
          headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({
-           doctorId: doctorIdToUse,
-           doctorName: doctorName || doctor?.name,
-           doctorSpecialization: doctor?.specialization,
-           clinicName: doctor?.clinicName,
-           clinicAddress: doctor?.clinicAddress,
-           clinicPhone: doctor?.clinicPhone,
-           registrationNumber: doctor?.registrationNumber,
-           digitalSignature: doctor?.digitalSignature,
-           patientId,
-           patientName,
-           patientAge: prescription.patientAge,
-           patientGender: prescription.patientGender,
-           patientWeight: prescription.patientWeight,
-           patientBloodGroup: prescription.patientBloodGroup,
-           appointmentId,
-           medicines: validMedicines,
-           diagnosis: prescription.diagnosis,
-           severity: prescription.severity,
-           labTests: prescription.labTests.filter(t => t.trim()),
-           advice: prescription.advice,
-           notes: prescription.notes,
-           followUpDate: prescription.followUpDate,
-           attachments: prescription.attachments,
-           sendToPatient: prescription.sendToPatient,
-           notificationMethods: prescription.notificationMethods,
-           issuedDate: prescription.date,
-         }),
+          body: JSON.stringify({
+            doctorId: doctorIdToUse,
+            doctorName: doctorName || doctor?.name || "Doctor",
+            doctorSpecialization: doctor?.specialization || "",
+            clinicName: doctor?.clinicName || "",
+            clinicAddress: doctor?.clinicAddress || "",
+            clinicPhone: doctor?.clinicPhone || "",
+            registrationNumber: doctor?.registrationNumber || "",
+            digitalSignature: doctor?.digitalSignature || null,
+            patientId,
+            patientName: patientName || "Patient",
+            patientAge: prescription.patientAge,
+            patientGender: prescription.patientGender,
+            patientWeight: prescription.patientWeight,
+            patientBloodGroup: prescription.patientBloodGroup,
+            appointmentId: appointmentId || null,
+            medicines: validMedicines,
+            diagnosis: prescription.diagnosis,
+            severity: prescription.severity,
+            labTests: prescription.labTests.filter(t => t.trim()),
+            advice: prescription.advice,
+            notes: prescription.notes,
+            followUpDate: prescription.followUpDate || null,
+            attachments: prescription.attachments || [],
+            sendToPatient: prescription.sendToPatient,
+            notificationMethods: prescription.notificationMethods || { email: true, inApp: true, whatsapp: true },
+            issuedDate: prescription.date,
+          }),
        })
        
        console.log("[PrescriptionModal] Response status:", res.status)
@@ -636,7 +642,7 @@ export function PrescriptionModal({
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#020331]">Digital Prescription</h2>
-              <p className="text-sm text-[#80A0B5]">Patient: {patientName}</p>
+              <p className="text-sm text-black">Patient: {patientName}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -759,7 +765,15 @@ export function PrescriptionModal({
 
               {/* Diagnosis */}
               <Card className="">
-                <CardContent>
+                <CardContent className="pt-6">
+                  <Label className="text-[#000004] font-semibold mb-2 block">Clinical Diagnosis *</Label>
+                  <textarea
+                    placeholder="Enter patient diagnosis (e.g., Acute Pharyngitis)..."
+                    value={prescription.diagnosis}
+                    onChange={(e) => setPrescription({ ...prescription, diagnosis: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-lg border border-[#80A0B5]/40 bg-white px-3 py-2 text-[#000004] text-sm focus:outline-none focus:ring-2 focus:ring-[#3875FD]/30 focus:border-[#3875FD] mb-4 resize-none"
+                  />
                   
                   {/* Medicine Suggestions */}
                   {showMedicineSuggestions && prescription.diagnosis && (
@@ -770,7 +784,7 @@ export function PrescriptionModal({
                           <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg">
                             <div>
                               <p className="font-medium">{sugg.name}</p>
-                              <p className="text-sm text-[#80A0B5]">{sugg.dosage} - {sugg.frequency} for {sugg.duration}</p>
+                              <p className="text-sm text-black">{sugg.dosage} - {sugg.frequency} for {sugg.duration}</p>
                             </div>
                             <Button
                               size="sm"
@@ -841,7 +855,7 @@ export function PrescriptionModal({
                                       }}
                                     >
                                       <span className="font-medium text-[#020331]">{med.name}</span>
-                                      <span className="text-xs text-[#80A0B5] bg-gray-100 px-2 py-1 rounded">
+                                      <span className="text-xs text-black bg-gray-100 px-2 py-1 rounded">
                                         {med.category}
                                       </span>
                                     </div>
@@ -1002,21 +1016,21 @@ export function PrescriptionModal({
                 <CardContent>
                    <div className="grid grid-cols-2 gap-4">
                      <div>
-                       <Label className="text-[#80A0B5] text-sm">Doctor Name</Label>
+                       <Label className="text-black text-sm">Doctor Name</Label>
                        <p className="font-semibold text-[#020331]">{doctorName || doctor?.name || "Dr. Name"}</p>
                      </div>
                      <div>
-                       <Label className="text-[#80A0B5] text-sm">Specialization</Label>
+                       <Label className="text-black text-sm">Specialization</Label>
                        <p className="font-semibold text-[#020331]">{doctor?.specialization || "General Practitioner"}</p>
                      </div>
                      <div className="col-span-2">
-                       <Label className="text-[#80A0B5] text-sm">Hospital / Clinic</Label>
+                       <Label className="text-black text-sm">Hospital / Clinic</Label>
                        <p className="font-semibold text-[#020331]">
                           {resolvedPatient?.hospitalName || resolvedPatient?.hospital || doctor?.clinicName || "Not specified"}
                        </p>
                      </div>
                      <div>
-                       <Label className="text-[#80A0B5] text-sm">Reg. Number</Label>
+                       <Label className="text-black text-sm">Reg. Number</Label>
                        <p className="font-semibold text-[#020331]">{doctor?.registrationNumber || doctor?.licenseNumber || "N/A"}</p>
                      </div>
                    </div>
@@ -1042,7 +1056,7 @@ export function PrescriptionModal({
                 <CardContent>
                   {/* Quick Add Common Tests */}
                   <div className="mb-4">
-                    <Label className="text-sm text-[#80A0B5]">Quick Add Common Tests:</Label>
+                    <Label className="text-sm text-black">Quick Add Common Tests:</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {commonLabTests.map((test) => (
                         <Badge

@@ -66,7 +66,7 @@ export default function DoctorProfileCard({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h3 className="font-bold text-slate-900 truncate">
+              <h3 className="font-bold text-black truncate">
                 Dr. {doctor.name}
               </h3>
               <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -75,12 +75,12 @@ export default function DoctorProfileCard({
                     {doctor.degree}
                   </span>
                 )}
-                <span className="text-xs text-slate-500 flex items-center gap-1">
+                <span className="text-xs text-black flex items-center gap-1">
                   <Stethoscope className="h-3 w-3" />
                   {doctor.specialization}
                 </span>
               </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+              <div className="flex items-center gap-3 mt-1 text-xs text-black">
                 {doctor.experience > 0 && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
@@ -97,7 +97,7 @@ export default function DoctorProfileCard({
             </div>
           </div>
 
-          // Book Button
+          {/* Book Button */}
           <Button
             onClick={handleBookClick}
             disabled={isBooking}
@@ -160,13 +160,13 @@ export default function DoctorProfileCard({
                 {/* Experience & Gender */}
                 <div className="flex items-center gap-4 text-sm">
                   {doctor.experience > 0 && (
-                    <div className="flex items-center gap-1.5 text-slate-600">
+                    <div className="flex items-center gap-1.5 text-black">
                       <Award className="h-4 w-4 text-[#3875FD]" />
                       <span className="font-medium">{formatExperience(doctor.experience)}</span>
                     </div>
                   )}
                   {doctor.gender && (
-                    <div className="flex items-center gap-1.5 text-slate-600">
+                    <div className="flex items-center gap-1.5 text-black">
                       <User className="h-4 w-4 text-[#3875FD]" />
                       <span className="font-medium capitalize">{doctor.gender}</span>
                     </div>
@@ -176,25 +176,25 @@ export default function DoctorProfileCard({
                 {/* Contact Info */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   {doctor.phoneNumber && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black">
                       <Phone className="h-4 w-4 text-[#3875FD]" />
                       <span>{doctor.phoneNumber}</span>
                     </div>
                   )}
                   {doctor.whatsappNumber && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black">
                       <span className="text-green-500 text-base">💬</span>
                       <span>{doctor.whatsappNumber}</span>
                     </div>
                   )}
                   {doctor.email && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black">
                       <Mail className="h-4 w-4 text-[#3875FD]" />
                       <span className="truncate">{doctor.email}</span>
                     </div>
                   )}
                   {doctor.website && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black">
                       <Globe className="h-4 w-4 text-[#3875FD]" />
                       <a
                         href={doctor.website}
@@ -212,7 +212,7 @@ export default function DoctorProfileCard({
                 {/* Bio */}
                 {doctor.bio && (
                   <div className="pt-2 border-t border-slate-100">
-                    <p className="text-sm text-slate-500 line-clamp-2">{doctor.bio}</p>
+                    <p className="text-sm text-black line-clamp-2">{doctor.bio}</p>
                   </div>
                 )}
               </div>

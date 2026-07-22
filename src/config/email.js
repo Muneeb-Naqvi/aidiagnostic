@@ -1,13 +1,25 @@
 import nodemailer from "nodemailer"
 
+const host = process.env.EMAIL_HOST || process.env.SMTP_HOST
+const port = process.env.EMAIL_PORT || process.env.SMTP_PORT
+const secure = process.env.EMAIL_SECURE === "true"
+const user = process.env.EMAIL_USER || process.env.SMTP_USER
+const pass = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS
+
+if (!host || !port || !user || !pass) {
+  console.warn("[EMAIL] SMTP configuration incomplete. Some environment variables are missing. Using defaults or will fail.")
+}
+
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: process.env.EMAIL_SECURE === "true",
+  host,
+  port: port ? parseInt(port, 10) : 587,
+  secure: secure || false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user,
+    pass,
   },
+  connectionTimeout: 5000,
+  socketTimeout: 5000,
 })
 
 export async function sendEmail(options) {

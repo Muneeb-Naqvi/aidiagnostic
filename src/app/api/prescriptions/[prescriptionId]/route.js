@@ -3,8 +3,9 @@ import PrescriptionAPI from "@/lib/prescriptionAPI"
 
 export async function GET(request, { params }) {
   try {
+    const { prescriptionId } = await params
     await getDB()
-    const prescription = await PrescriptionAPI.getPrescriptionById(params.prescriptionId)
+    const prescription = await PrescriptionAPI.getPrescriptionById(prescriptionId)
 
     if (!prescription) {
       return Response.json({ success: false, error: "Prescription not found" }, { status: 404 })
@@ -19,10 +20,11 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
+    const { prescriptionId } = await params
     await getDB()
     const body = await request.json()
 
-    const prescription = await PrescriptionAPI.updatePrescription(params.prescriptionId, body)
+    const prescription = await PrescriptionAPI.updatePrescription(prescriptionId, body)
 
     if (!prescription) {
       return Response.json({ success: false, error: "Prescription not found" }, { status: 404 })
@@ -37,8 +39,9 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    const { prescriptionId } = await params
     await getDB()
-    const result = await PrescriptionAPI.deletePrescription(params.prescriptionId)
+    const result = await PrescriptionAPI.deletePrescription(prescriptionId)
 
     if (result.deletedCount === 0) {
       return Response.json({ success: false, error: "Prescription not found" }, { status: 404 })

@@ -176,7 +176,7 @@ export default function PatientLogin() {
               <Heart className="w-8 h-8 text-[#3875FD]" />
             </div>
             <h1 className="text-3xl font-bold text-[#000004] mb-2">Patient Portal</h1>
-            <p className="text-[#80A0B5]">Access your health records & AI-powered insights</p>
+            <p className="text-black">Access your health records & AI-powered insights</p>
           </div>
 
           {/* Tabs */}
@@ -234,7 +234,7 @@ export default function PatientLogin() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#80A0B5] hover:text-[#3875FD]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-[#3875FD]"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -242,7 +242,7 @@ export default function PatientLogin() {
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm text-[#80A0B5] cursor-pointer">
+                <label className="flex items-center gap-2 text-sm text-black cursor-pointer">
                   <input type="checkbox" className="w-4 h-4 rounded border-[#80A0B5]/50" disabled={isLoading} />
                   Remember me
                 </label>
@@ -337,7 +337,7 @@ export default function PatientLogin() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#80A0B5] hover:text-[#3875FD]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-[#3875FD]"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -368,7 +368,7 @@ export default function PatientLogin() {
             </form>
           )}
 
-          <p className="text-center text-sm text-[#80A0B5] mt-6">
+          <p className="text-center text-sm text-black mt-6">
             Are you a doctor?{" "}
             <a href="/doctor-login" className="text-[#3875FD] font-medium hover:underline">
               Doctor Login

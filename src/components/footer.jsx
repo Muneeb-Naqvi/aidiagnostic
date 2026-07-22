@@ -5,7 +5,7 @@ import Link from "next/link"
 
 export function Footer() {
   return (
-    <footer className="mt-24 bg-[#020331] text-[#80A0B5]">
+    <footer className="mt-24 bg-[#020331] text-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
         {/* Top Grid */}
@@ -22,7 +22,7 @@ export function Footer() {
               </span>
             </div>
 
-            <p className="text-sm leading-relaxed text-[#80A0B5]/90 max-w-xs">
+            <p className="text-sm leading-relaxed text-black/90 max-w-xs">
               Modern healthcare platform connecting hospitals, doctors, 
               patients and AI-powered diagnostics.
             </p>
@@ -118,11 +118,11 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-[#3875FD]/10 text-center">
-          <p className="text-sm text-[#80A0B5]">
+          <p className="text-sm text-black">
             © {new Date().getFullYear()} MediCare. All rights reserved.
           </p>
           
-          <p className="mt-2 text-xs text-[#80A0B5]/80">
+          <p className="mt-2 text-xs text-black/80">
             Empowering Healthcare with Artificial Intelligence
           </p>
         </div>

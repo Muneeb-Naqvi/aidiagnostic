@@ -76,11 +76,11 @@ export default function ReportUploadModal({ isOpen, onClose, onUpload }) {
           <div className="p-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Report Category</Label>
+                <Label className="text-sm font-semibold text-black dark:text-black ml-1">Report Category</Label>
                 <select
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
-                  className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-slate-900 dark:text-white appearance-none"
+                  className="w-full h-11 px-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-black dark:text-white appearance-none"
                 >
                   <option value="" disabled>Select report type</option>
                   <option>Blood Test</option>
@@ -93,7 +93,7 @@ export default function ReportUploadModal({ isOpen, onClose, onUpload }) {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Select Files</Label>
+                <Label className="text-sm font-semibold text-black dark:text-black ml-1">Select Files</Label>
                 <div className="relative group">
                   <input
                     type="file"
@@ -110,12 +110,12 @@ export default function ReportUploadModal({ isOpen, onClose, onUpload }) {
                     {files.length > 0 ? (
                       <div className="text-center">
                         <File className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">{files.length} files selected</p>
+                        <p className="text-sm font-medium text-black dark:text-white">{files.length} files selected</p>
                       </div>
                     ) : (
                       <>
-                        <Upload className="w-8 h-8 text-slate-400 mb-2 group-hover:text-blue-500 transition-colors" />
-                        <p className="text-sm text-slate-500 dark:text-slate-400">PDF, JPG or PNG</p>
+                        <Upload className="w-8 h-8 text-black mb-2 group-hover:text-blue-500 transition-colors" />
+                        <p className="text-sm text-black dark:text-black">PDF, JPG or PNG</p>
                       </>
                     )}
                   </label>

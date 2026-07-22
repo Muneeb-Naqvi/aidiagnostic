@@ -130,6 +130,7 @@ export function PatientSidebar() {
         </button>
       </div>
     </motion.aside>
+    </>
   )
 }
 

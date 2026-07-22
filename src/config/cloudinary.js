@@ -6,12 +6,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-export async function uploadFile(file, folder = "medical-reports") {
+export async function uploadFile(file, folder = "medical-reports", fileType = "application/octet-stream") {
   try {
-    const result = await cloudinary.uploader.upload(file, {
-      folder: `medicare/${folder}`,
-      resource_type: "auto",
-    })
+    let fileToUpload = file
+    if (Buffer.isBuffer(file)) {
+      const base64 = file.toString("base64")
+      fileToUpload = `data:${fileType};base64,${base64}`
+    }
+  const result = await cloudinary.uploader.upload(fileToUpload, {
+    folder: `medicare/${folder}`,
+    resource_type: "auto",
+    type: "upload",
+    use_filename: true,
+    unique_filename: false,
+    overwrite: true,
+    access_mode: "public",
+  })
     console.log("[CLOUDINARY] File uploaded successfully:", result.public_id)
     return {
       url: result.secure_url,

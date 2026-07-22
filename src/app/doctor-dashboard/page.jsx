@@ -23,6 +23,8 @@ import {
   FileText,
   Plus,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Search,
   Eye,
   Download,
@@ -39,6 +41,8 @@ import {
   Mail,
   Phone,
   Send,
+  Loader2,
+  ClipboardList,
 } from "lucide-react"
 
 function DoctorDashboardContent() {
@@ -56,6 +60,7 @@ function DoctorDashboardContent() {
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showAppointmentModal, setShowAppointmentModal] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  const [expandedAppointmentId, setExpandedAppointmentId] = useState(null)
   const pollRef = useRef(null)
 
   // Real patients data - derived from appointments
@@ -71,12 +76,23 @@ function DoctorDashboardContent() {
   const [localPrescriptions, setLocalPrescriptions] = useState([])
   const [selectedPatientData, setSelectedPatientData] = useState(null)
 
-  // Patient records modal state
   const [selectedPatientForRecords, setSelectedPatientForRecords] = useState(null)
   const [patientReports, setPatientReports] = useState([])
   const [loadingPatientReports, setLoadingPatientReports] = useState(false)
   const [viewingPdfUrl, setViewingPdfUrl] = useState(null)
   const [analyzingReportId, setAnalyzingReportId] = useState(null)
+
+  // Simple Prescription Form States
+  const [prescDisease, setPrescDisease] = useState("")
+  const [prescMedications, setPrescMedications] = useState("")
+  const [prescDosage, setPrescDosage] = useState("")
+  const [prescInstructions, setPrescInstructions] = useState("")
+  const [prescNotes, setPrescNotes] = useState("")
+  const [isSavingPresc, setIsSavingPresc] = useState(false)
+
+  const totalEarnings = appointments
+    .filter(a => a.paymentStatus === "paid")
+    .reduce((sum, a) => sum + (parseFloat(a.fee || 1000) * 0.8), 0);
 
   useEffect(() => {
     const id = localStorage.getItem("doctorId")
@@ -87,7 +103,23 @@ function DoctorDashboardContent() {
 
     // Fetch appointments on initial load
     fetchAppointments(resolvedId)
+    fetchDoctorPrescriptions(resolvedId)
   }, [])
+
+  // Fetch doctor's prescriptions
+  const fetchDoctorPrescriptions = async (id) => {
+    const dId = id || doctorId
+    if (!dId) return
+    try {
+      const response = await fetch(`/api/prescriptions?doctorId=${dId}`)
+      const data = await response.json()
+      if (data.success) {
+        setLocalPrescriptions(data.data || [])
+      }
+    } catch (err) {
+      console.error("Error fetching prescriptions:", err)
+    }
+  }
 
   // Fetch appointments
   const fetchAppointments = async (id) => {
@@ -230,13 +262,62 @@ function DoctorDashboardContent() {
   }
 
   const handleSaveAnalysis = async () => {
+    // If saving from Prescription tab
+    if (prescriptionAppointment?.patientId) {
+      if (!prescDisease || !prescMedications) {
+        toast.error("Disease and medications are required")
+        return
+      }
+
+      setIsSavingPresc(true)
+      try {
+        const response = await fetch("/api/prescriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId: prescriptionAppointment.patientId,
+            doctorId: doctorId,
+            doctorName: doctorName ? `Dr. ${doctorName}` : "Doctor",
+            patientName: prescriptionAppointment.patientName,
+            disease: prescDisease,
+            medications: prescMedications,
+            dosage: prescDosage,
+            instructions: prescInstructions,
+            notes: prescNotes
+          }),
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          toast.success("Prescription saved and sent successfully.")
+          setPrescDisease("")
+          setPrescMedications("")
+          setPrescDosage("")
+          setPrescInstructions("")
+          setPrescNotes("")
+          setPrescriptionPatient(null)
+          setPrescriptionAppointment(null)
+          fetchDoctorPrescriptions(doctorId)
+        } else {
+          toast.error("Failed to save prescription: " + data.error)
+        }
+      } catch (error) {
+        console.error("Error saving prescription:", error)
+        toast.error("Failed to save prescription")
+      } finally {
+        setIsSavingPresc(false)
+      }
+      return
+    }
+
+    // Original Lab Report Analysis save
     if (!selectedReport?.id) {
       toast.error("No report selected")
       return
     }
 
     try {
-      // Save analysis and send to patient via API
       const response = await fetch("/api/lab-reports", {
         method: "PATCH",
         headers: {
@@ -252,7 +333,6 @@ function DoctorDashboardContent() {
       const data = await response.json()
 
       if (data.success) {
-        // Update local state
         setLabReports(
           labReports.map((r) =>
             r.id === selectedReport.id ? { ...r, status: "analyzed", findings: analysis } : r
@@ -363,8 +443,8 @@ function DoctorDashboardContent() {
         >
           <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 sm:py-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A]">Doctor Dashboard</h1>
-              <p className="text-xs sm:text-sm text-[#64748B]">ID: {doctorId}</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-black">Doctor Dashboard</h1>
+              <p className="text-xs sm:text-sm text-black">ID: {doctorId}</p>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4">
@@ -372,7 +452,7 @@ function DoctorDashboardContent() {
                 className="relative p-2 hover:bg-[#EFF6FF] rounded-lg transition-colors"
                 onClick={() => router.push("?tab=appointments")}
               >
-                <Calendar className="w-5 h-5 text-[#64748B]" />
+                <Calendar className="w-5 h-5 text-black" />
                 {pendingCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
                     {pendingCount}
@@ -380,7 +460,7 @@ function DoctorDashboardContent() {
                 )}
               </button>
               <button className="p-2 hover:bg-[#EFF6FF] rounded-lg transition-colors">
-                <MessageSquare className="w-5 h-5 text-[#64748B]" />
+                <MessageSquare className="w-5 h-5 text-black" />
               </button>
               <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#3B82F6] text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-base">
                 D
@@ -393,13 +473,13 @@ function DoctorDashboardContent() {
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 sm:space-y-8">
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                 <Card className="border-[#E2E8F0] shadow-sm">
                   <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6">
                     <div className="text-center">
                       <User className="w-7 h-7 sm:w-8 sm:h-8 text-[#3B82F6] mx-auto mb-2 opacity-60" />
-                      <div className="text-2xl sm:text-3xl font-bold text-[#0F172A]">{patients.length}</div>
-                      <p className="text-xs sm:text-sm text-[#64748B] mt-1">Total Patients</p>
+                      <div className="text-2xl sm:text-3xl font-bold text-black">{patients.length}</div>
+                      <p className="text-xs sm:text-sm text-black mt-1">Total Patients</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -408,10 +488,10 @@ function DoctorDashboardContent() {
                   <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6">
                     <div className="text-center">
                       <FileText className="w-7 h-7 sm:w-8 sm:h-8 text-[#F59E0B] mx-auto mb-2 opacity-60" />
-                      <div className="text-2xl sm:text-3xl font-bold text-[#0F172A]">
+                      <div className="text-2xl sm:text-3xl font-bold text-black">
                         {labReports.filter((r) => r.status === "pending-analysis").length}
                       </div>
-                      <p className="text-xs sm:text-sm text-[#64748B] mt-1">Pending Analysis</p>
+                      <p className="text-xs sm:text-sm text-black mt-1">Pending Analysis</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -420,10 +500,10 @@ function DoctorDashboardContent() {
                   <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6">
                     <div className="text-center">
                       <CheckCircle className="w-7 h-7 sm:w-8 sm:h-8 text-[#10B981] mx-auto mb-2 opacity-60" />
-                      <div className="text-2xl sm:text-3xl font-bold text-[#0F172A]">
+                      <div className="text-2xl sm:text-3xl font-bold text-black">
                         {labReports.filter((r) => r.status === "analyzed").length}
                       </div>
-                      <p className="text-xs sm:text-sm text-[#64748B] mt-1">Analyzed Reports</p>
+                      <p className="text-xs sm:text-sm text-black mt-1">Analyzed Reports</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -432,13 +512,23 @@ function DoctorDashboardContent() {
                   <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6">
                     <div className="text-center relative">
                       <Calendar className="w-7 h-7 sm:w-8 sm:h-8 text-[#EF4444] mx-auto mb-2 opacity-60" />
-                      <div className="text-2xl sm:text-3xl font-bold text-[#0F172A]">
+                      <div className="text-2xl sm:text-3xl font-bold text-black">
                         {pendingCount}
                       </div>
-                      <p className="text-xs sm:text-sm text-[#64748B] mt-1">Pending Appts.</p>
+                      <p className="text-xs sm:text-sm text-black mt-1">Pending Appts.</p>
                       {pendingCount > 0 && (
                         <div className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-[#E2E8F0] shadow-sm">
+                  <CardContent className="pt-5 sm:pt-6 px-4 sm:px-6">
+                    <div className="text-center">
+                      <Activity className="w-7 h-7 sm:w-8 sm:h-8 text-[#059669] mx-auto mb-2 opacity-60" />
+                      <div className="text-2xl sm:text-3xl font-bold text-emerald-600">Rs. {totalEarnings.toLocaleString()}</div>
+                      <p className="text-xs sm:text-sm text-black mt-1">Total Earnings</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -446,7 +536,7 @@ function DoctorDashboardContent() {
 
               <Card className="border-[#E2E8F0] shadow-sm">
                 <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="text-[#0F172A] text-lg sm:text-xl">Recent Patients</CardTitle>
+                  <CardTitle className="text-black text-lg sm:text-xl">Recent Patients</CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 sm:px-6">
                   {patients.slice(0, 3).map((patient) => (
@@ -459,11 +549,11 @@ function DoctorDashboardContent() {
                           <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#3B82F6]" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-[#0F172A] text-sm sm:text-base truncate">{patient.name}</p>
-                          <p className="text-xs sm:text-sm text-[#64748B] truncate">{patient.condition}</p>
+                          <p className="font-semibold text-black text-sm sm:text-base truncate">{patient.name}</p>
+                          <p className="text-xs sm:text-sm text-black truncate">{patient.condition}</p>
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#64748B] shrink-0 ml-2" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 ml-2" />
                     </div>
                   ))}
                 </CardContent>
@@ -475,7 +565,7 @@ function DoctorDashboardContent() {
           {activeTab === "patients" && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 sm:space-y-6">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" />
                 <Input
                   type="text"
                   placeholder="Search patients..."
@@ -499,14 +589,14 @@ function DoctorDashboardContent() {
                           <User className="w-5 h-5 sm:w-6 sm:h-6 text-[#3B82F6]" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-base sm:text-lg font-bold text-[#0F172A] truncate">{patient.name}</h3>
-                          <p className="text-xs sm:text-sm text-[#64748B] truncate">{patient.condition}</p>
+                          <h3 className="text-base sm:text-lg font-bold text-black truncate">{patient.name}</h3>
+                          <p className="text-xs sm:text-sm text-black truncate">{patient.condition}</p>
                         </div>
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap self-start sm:self-auto ${patient.status === "active"
                             ? "bg-[#D1FAE5] text-[#065F46]"
-                            : "bg-[#F3F4F6] text-[#374151]"
+                            : "bg-[#F3F4F6] text-black"
                           }`}
                       >
                         {patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
@@ -515,16 +605,16 @@ function DoctorDashboardContent() {
 
                     <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 text-xs sm:text-sm">
                       <div>
-                        <p className="text-[#64748B]">Age</p>
-                        <p className="font-semibold text-[#0F172A]">{patient.age === "N/A" ? "N/A" : `${patient.age} years`}</p>
+                        <p className="text-black">Age</p>
+                        <p className="font-semibold text-black">{patient.age === "N/A" ? "N/A" : `${patient.age} years`}</p>
                       </div>
                       <div>
-                        <p className="text-[#64748B]">Last Visit</p>
-                        <p className="font-semibold text-[#0F172A]">{patient.lastVisit}</p>
+                        <p className="text-black">Last Visit</p>
+                        <p className="font-semibold text-black">{patient.lastVisit}</p>
                       </div>
                       <div>
-                        <p className="text-[#64748B]">Reports</p>
-                        <p className="font-semibold text-[#0F172A]">{patient.reports} files</p>
+                        <p className="text-black">Reports</p>
+                        <p className="font-semibold text-black">{patient.reports} files</p>
                       </div>
                     </div>
 
@@ -569,10 +659,10 @@ function DoctorDashboardContent() {
                       <div>
                         <div className="flex items-center gap-2 sm:gap-3 mb-2">
                           <FileText className="w-5 h-5 text-[#3B82F6]" />
-                          <h3 className="text-base sm:text-lg font-bold text-[#0F172A]">{report.reportType}</h3>
+                          <h3 className="text-base sm:text-lg font-bold text-black">{report.reportType}</h3>
                         </div>
-                        <p className="text-xs sm:text-sm text-[#64748B]">Patient: {report.patientName}</p>
-                        <p className="text-xs sm:text-sm text-[#64748B]">Uploaded: {report.uploadDate}</p>
+                        <p className="text-xs sm:text-sm text-black">Patient: {report.patientName}</p>
+                        <p className="text-xs sm:text-sm text-black">Uploaded: {report.uploadDate}</p>
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap self-start sm:self-auto ${report.status === "analyzed"
@@ -585,8 +675,8 @@ function DoctorDashboardContent() {
                     </div>
 
                     <div className="bg-[#F8FAFC] rounded-lg p-3 sm:p-4 mb-5 text-xs sm:text-sm">
-                      <p className="text-[#374151]">
-                        <span className="font-semibold text-[#0F172A]">Findings:</span> {report.findings}
+                      <p className="text-black">
+                        <span className="font-semibold text-black">Findings:</span> {report.findings}
                       </p>
                     </div>
 
@@ -619,18 +709,20 @@ function DoctorDashboardContent() {
               {/* Show local prescriptions */}
               {localPrescriptions.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-bold text-[#0F172A] mb-4">Recently Issued Prescriptions</h3>
+                  <h3 className="text-lg font-bold text-black mb-4">Recently Issued Prescriptions</h3>
                   <div className="space-y-4">
                     {localPrescriptions.map((pres, idx) => (
                       <Card key={idx} className="border-[#E2E8F0] shadow-sm">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-semibold text-[#0F172A]">{pres.patientName}</p>
-                              <p className="text-sm text-[#64748B]">{pres.diagnosis}</p>
-                              <p className="text-xs text-[#64748B] mt-1">{pres.medicines?.length || 0} medicines</p>
+                              <p className="font-semibold text-black">{pres.patientName}</p>
+                              <p className="text-sm text-black">{pres.disease}</p>
+                              <p className="text-xs text-black mt-1">{pres.medications}</p>
                             </div>
-                            <span className="text-xs text-[#64748B]">{pres.issuedDate}</span>
+                            <span className="text-xs text-black">
+                              {pres.createdAt ? new Date(pres.createdAt).toLocaleDateString() : "N/A"}
+                            </span>
                           </div>
                         </CardContent>
                       </Card>
@@ -638,31 +730,86 @@ function DoctorDashboardContent() {
                   </div>
                 </div>
               )}
-              <Card className="border-[#E2E8F0] shadow-sm">
-                <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="text-[#0F172A] text-lg sm:text-xl">Select Patient</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 sm:px-6">
-                  <div className="space-y-3">
-                    {patients.map((patient) => (
-                      <button
-                        key={patient.id}
-                        onClick={() => {
-                          setPrescriptionPatient(patient.name)
-                          setPrescriptionAppointment({ patientId: patient.id, patientName: patient.name })
-                        }}
-                        className="w-full flex items-center justify-between p-4 border border-[#E2E8F0] rounded-lg hover:bg-[#EFF6FF] transition-colors text-left"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#0F172A] text-sm sm:text-base truncate">{patient.name}</p>
-                          <p className="text-xs sm:text-sm text-[#64748B] truncate">{patient.condition}</p>
+              {!prescriptionPatient ? (
+                <Card className="border-[#E2E8F0] shadow-sm">
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <CardTitle className="text-black text-lg sm:text-xl">Select Patient</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 sm:px-6">
+                    <div className="space-y-3">
+                      {patients.map((patient) => (
+                        <button
+                          key={patient.id}
+                          onClick={() => {
+                            setPrescriptionPatient(patient.name)
+                            setPrescriptionAppointment({ patientId: patient.id, patientName: patient.name })
+                          }}
+                          className="w-full flex items-center justify-between p-4 border border-[#E2E8F0] rounded-lg hover:bg-[#EFF6FF] transition-colors text-left"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-semibold text-black text-sm sm:text-base truncate">{patient.name}</p>
+                            <p className="text-xs sm:text-sm text-black truncate">{patient.condition}</p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-black shrink-0 ml-3" />
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-[#E2E8F0] shadow-sm">
+                  <CardHeader className="pb-3 sm:pb-4 flex flex-row items-center justify-between">
+                    <CardTitle className="text-black text-lg sm:text-xl">
+                      Prescription for {prescriptionPatient}
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => { setPrescriptionPatient(null); setPrescriptionAppointment(null); }}>
+                      <X className="w-4 h-4 mr-2" /> Cancel
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="px-4 sm:px-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-black mb-1.5 block">Disease / Diagnosis</label>
+                        <Input value={prescDisease} onChange={(e) => setPrescDisease(e.target.value)} placeholder="e.g. Viral Fever" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-black mb-1.5 block">Medications</label>
+                        <Input value={prescMedications} onChange={(e) => setPrescMedications(e.target.value)} placeholder="e.g. Paracetamol 500mg" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-black mb-1.5 block">Dosage</label>
+                          <Input value={prescDosage} onChange={(e) => setPrescDosage(e.target.value)} placeholder="e.g. 1-0-1" />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-[#64748B] shrink-0 ml-3" />
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                        <div>
+                          <label className="text-sm font-medium text-black mb-1.5 block">Instructions</label>
+                          <Input value={prescInstructions} onChange={(e) => setPrescInstructions(e.target.value)} placeholder="e.g. After meals" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-black mb-1.5 block">Notes (Optional)</label>
+                        <textarea
+                          value={prescNotes}
+                          onChange={(e) => setPrescNotes(e.target.value)}
+                          className="w-full rounded-md border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-blue-500"
+                          rows="3"
+                          placeholder="Additional instructions for the patient"
+                        />
+                      </div>
+                      <div className="pt-4 flex justify-end">
+                        <Button
+                          onClick={handleSaveAnalysis}
+                          disabled={isSavingPresc}
+                          className="bg-[#3B82F6] hover:bg-[#2563EB] text-white flex items-center justify-center gap-2"
+                        >
+                          {isSavingPresc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                          Save & Send to Patient
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           )}
 
@@ -671,8 +818,8 @@ function DoctorDashboardContent() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">Appointments</h2>
-                  <p className="text-slate-500">Manage patient appointments and view their medical reports</p>
+                  <h2 className="text-2xl font-bold text-black">Appointments</h2>
+                  <p className="text-black">Manage patient appointments and view their medical reports</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
@@ -688,68 +835,159 @@ function DoctorDashboardContent() {
               ) : appointments.length === 0 ? (
                 <Card className="border-slate-200 shadow-sm">
                   <CardContent className="flex flex-col items-center justify-center py-20">
-                    <Calendar className="h-16 w-16 text-slate-200 mb-4" />
-                    <h3 className="text-xl font-bold text-slate-400 mb-2">No Appointments Yet</h3>
-                    <p className="text-slate-400 text-center">Patients will book appointments after you are recommended by the AI system.</p>
+                    <Calendar className="h-16 w-16 text-black mb-4" />
+                    <h3 className="text-xl font-bold text-black mb-2">No Appointments Yet</h3>
+                    <p className="text-black text-center">Patients will book appointments after you are recommended by the AI system.</p>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {appointments.map((appointment, idx) => (
-                    <Card
-                      key={appointment.appointmentId || idx}
-                      className="border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => {
-                        setSelectedAppointment(appointment)
-                        setShowAppointmentModal(true)
-                      }}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                              {appointment.patientName?.charAt(0) || "P"}
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-slate-900 text-lg">{appointment.patientName}</h3>
-                              <div className="flex items-center gap-3 mt-1">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${appointment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                  {appointments.map((appointment, idx) => {
+                    const aptId = appointment.appointmentId || idx
+                    const isExpanded = expandedAppointmentId === aptId
+                    const patientPrescriptions = localPrescriptions.filter(
+                      p => p.patientName === appointment.patientName
+                    )
+
+                    return (
+                      <Card
+                        key={aptId}
+                        className="border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        {/* ── Header row ── */}
+                        <CardContent className="p-0">
+                          <div
+                            className="flex items-start justify-between p-6 cursor-pointer select-none"
+                            onClick={() => setExpandedAppointmentId(isExpanded ? null : aptId)}
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shrink-0">
+                                {appointment.patientName?.charAt(0) || "P"}
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-black text-lg">{appointment.patientName}</h3>
+                                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    appointment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
                                     appointment.status === "confirmed" ? "bg-green-100 text-green-700" :
-                                      appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
-                                        "bg-red-100 text-red-700"
+                                    appointment.status === "completed" ? "bg-blue-100 text-blue-700" :
+                                    "bg-red-100 text-red-700"
                                   }`}>
-                                  {appointment.status?.toUpperCase() || "PENDING"}
-                                </span>
-                                {appointment.disease && (
-                                  <span className="text-sm text-slate-500 flex items-center gap-1">
-                                    <Activity className="h-3 w-3" />
-                                    {appointment.disease}
+                                    {appointment.status?.toUpperCase() || "PENDING"}
                                   </span>
-                                )}
+                                  {appointment.disease && (
+                                    <span className="text-xs text-slate-600 flex items-center gap-1 font-medium">
+                                      <Activity className="h-3 w-3" />
+                                      {appointment.disease}
+                                    </span>
+                                  )}
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#E8F5E9] text-[#2E7D32]">
+                                    Fee: Rs. {appointment.fee || 1000} (80%: Rs. {(parseFloat(appointment.fee || 1000) * 0.8).toFixed(0)})
+                                  </span>
+                                  {patientPrescriptions.length > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 flex items-center gap-1">
+                                      <ClipboardList className="h-3 w-3" />
+                                      {patientPrescriptions.length} Rx
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-slate-400">
-                              {appointment.createdAt ? new Date(appointment.createdAt).toLocaleDateString() : "Just now"}
-                            </p>
-                            {appointment.reportName && (
-                              <p className="text-sm text-blue-600 flex items-center gap-1 mt-1">
-                                <FileText className="h-3 w-3" />
-                                Report Attached
-                              </p>
-                            )}
-                          </div>
-                        </div>
 
-                        {appointment.notes && (
-                          <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                            <p className="text-sm text-slate-600">{appointment.notes}</p>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <p className="text-sm text-black">
+                                {appointment.scheduledDate
+                                  ? new Date(appointment.scheduledDate).toLocaleDateString()
+                                  : appointment.createdAt
+                                  ? new Date(appointment.createdAt).toLocaleDateString()
+                                  : ""}
+                              </p>
+                              {isExpanded
+                                ? <ChevronUp className="h-5 w-5 text-slate-400" />
+                                : <ChevronDown className="h-5 w-5 text-slate-400" />}
+                            </div>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          {/* patient notes strip */}
+                          {appointment.notes && (
+                            <div className="px-6 pb-3">
+                              <p className="text-sm text-slate-500 italic">{appointment.notes}</p>
+                            </div>
+                          )}
+
+                          {/* ── Expanded panel ── */}
+                          {isExpanded && (
+                            <div className="border-t border-slate-100 bg-slate-50 px-6 py-5 space-y-5">
+
+                              {/* Previous Prescriptions */}
+                              <div>
+                                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                  <ClipboardList className="h-4 w-4 text-purple-600" />
+                                  Prescription History
+                                </h4>
+
+                                {patientPrescriptions.length === 0 ? (
+                                  <p className="text-sm text-slate-400 italic">No prescriptions written yet for this patient.</p>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {patientPrescriptions.map((pres, pIdx) => (
+                                      <div key={pIdx} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <p className="font-semibold text-black text-sm">{pres.diagnosis || "General Consultation"}</p>
+                                            {pres.medicines?.length > 0 && (
+                                              <p className="text-xs text-slate-500 mt-1">
+                                                💊 {pres.medicines.map(m => m.name).filter(Boolean).join(", ")}
+                                              </p>
+                                            )}
+                                            {pres.advice && (
+                                              <p className="text-xs text-slate-400 mt-1 italic">{pres.advice}</p>
+                                            )}
+                                          </div>
+                                          <span className="shrink-0 text-xs text-white bg-purple-500 px-2 py-1 rounded-lg font-medium whitespace-nowrap">
+                                            {pres.date || pres.createdAt}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Action buttons */}
+                              <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-200">
+                                <Button
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setPrescriptionPatient(appointment.patientName)
+                                    setPrescriptionAppointment(appointment)
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                  Write New Prescription
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-slate-300 text-slate-700 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedAppointment(appointment)
+                                    setShowAppointmentModal(true)
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  Full Medical Record
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               )}
             </motion.div>
@@ -817,9 +1055,9 @@ function DoctorDashboardContent() {
                     {selectedPatientForRecords.name?.charAt(0) || "P"}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">{selectedPatientForRecords.name}</h3>
-                    <p className="text-slate-600">Condition: {selectedPatientForRecords.condition}</p>
-                    <p className="text-slate-500 text-sm">Last Visit: {selectedPatientForRecords.lastVisit}</p>
+                    <h3 className="text-xl font-bold text-black">{selectedPatientForRecords.name}</h3>
+                    <p className="text-black">Condition: {selectedPatientForRecords.condition}</p>
+                    <p className="text-black text-sm">Last Visit: {selectedPatientForRecords.lastVisit}</p>
                   </div>
                 </div>
               </div>
@@ -831,7 +1069,7 @@ function DoctorDashboardContent() {
                 </div>
               ) : patientReports.length > 0 ? (
                 <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <h4 className="text-lg font-bold text-black flex items-center gap-2">
                     <Activity className="h-5 w-5 text-blue-600" />
                     Medical Reports & AI Analysis
                   </h4>
@@ -839,8 +1077,8 @@ function DoctorDashboardContent() {
                     <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5">
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <h5 className="font-bold text-slate-900">{report.name}</h5>
-                          <p className="text-sm text-slate-500">Type: {report.type} | Uploaded: {report.uploadDate}</p>
+                          <h5 className="font-bold text-black">{report.name}</h5>
+                          <p className="text-sm text-black">Type: {report.type} | Uploaded: {report.uploadDate}</p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${report.status === "analyzed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
@@ -873,19 +1111,19 @@ function DoctorDashboardContent() {
                       {/* AI Analysis Results */}
                       {report.analysis && (
                         <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg p-4 border border-emerald-100">
-                          <h6 className="font-bold text-slate-900 flex items-center gap-2 mb-3">
+                          <h6 className="font-bold text-black flex items-center gap-2 mb-3">
                             <Sparkles className="h-4 w-4 text-emerald-600" />
                             AI Analysis Results
                           </h6>
                           {report.analysis.disease && (
                             <div className="mb-3">
-                              <p className="text-sm font-semibold text-slate-700">Detected Disease:</p>
+                              <p className="text-sm font-semibold text-black">Detected Disease:</p>
                               <p className="text-lg font-bold text-blue-700">{report.analysis.disease}</p>
                             </div>
                           )}
                           {report.analysis.severity && (
                             <div className="mb-3">
-                              <p className="text-sm font-semibold text-slate-700">Severity:</p>
+                              <p className="text-sm font-semibold text-black">Severity:</p>
                               <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${report.analysis.severity === "high" ? "bg-red-100 text-red-700" :
                                   report.analysis.severity === "medium" ? "bg-yellow-100 text-yellow-700" :
                                     "bg-green-100 text-green-700"
@@ -896,13 +1134,13 @@ function DoctorDashboardContent() {
                           )}
                           {report.analysis.details && (
                             <div className="mb-3">
-                              <p className="text-sm font-semibold text-slate-700">Analysis Details:</p>
-                              <p className="text-slate-600 text-sm">{report.analysis.details}</p>
+                              <p className="text-sm font-semibold text-black">Analysis Details:</p>
+                              <p className="text-black text-sm">{report.analysis.details}</p>
                             </div>
                           )}
                           {report.analysis.suggestedSpecializations && report.analysis.suggestedSpecializations.length > 0 && (
                             <div>
-                              <p className="text-sm font-semibold text-slate-700 mb-2">Recommended Specializations:</p>
+                              <p className="text-sm font-semibold text-black mb-2">Recommended Specializations:</p>
                               <div className="flex flex-wrap gap-2">
                                 {report.analysis.suggestedSpecializations.map((spec, i) => (
                                   <span key={i} className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
@@ -943,7 +1181,7 @@ function DoctorDashboardContent() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 text-slate-500">
+                <div className="text-center py-10 text-black">
                   <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>No medical reports found for this patient.</p>
                 </div>
@@ -952,7 +1190,7 @@ function DoctorDashboardContent() {
               {/* Show prescriptions for this patient */}
               {localPrescriptions.filter(p => p.patientName === selectedPatientForRecords.name).length > 0 && (
                 <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <h4 className="text-lg font-bold text-black flex items-center gap-2">
                     <Activity className="h-5 w-5 text-emerald-600" />
                     Issued Prescriptions
                   </h4>
@@ -962,12 +1200,12 @@ function DoctorDashboardContent() {
                       <div key={idx} className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="font-bold text-slate-900">{pres.diagnosis}</p>
-                            <p className="text-sm text-slate-600 mt-1">
+                            <p className="font-bold text-black">{pres.diagnosis}</p>
+                            <p className="text-sm text-black mt-1">
                               {pres.medicines?.map(m => m.name).join(", ")}
                             </p>
                           </div>
-                          <span className="text-xs text-slate-500">{pres.issuedDate}</span>
+                          <span className="text-xs text-black">{pres.createdAt}</span>
                         </div>
                       </div>
                     ))}
@@ -1019,18 +1257,18 @@ function DoctorDashboardContent() {
                     {selectedAppointment.patientName?.charAt(0) || "P"}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-1">
+                    <h3 className="text-2xl font-bold text-black mb-1">
                       {selectedAppointment.patientName}
                     </h3>
                     {selectedAppointment.patientEmail && (
-                      <p className="text-slate-600 flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-slate-400" />
+                      <p className="text-black flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-black" />
                         {selectedAppointment.patientEmail}
                       </p>
                     )}
                     {selectedAppointment.patientPhone && (
-                      <p className="text-slate-600 flex items-center gap-2 mt-1">
-                        <Phone className="h-4 w-4 text-slate-400" />
+                      <p className="text-black flex items-center gap-2 mt-1">
+                        <Phone className="h-4 w-4 text-black" />
                         {selectedAppointment.patientPhone}
                       </p>
                     )}
@@ -1043,7 +1281,7 @@ function DoctorDashboardContent() {
                       }`}>
                       {selectedAppointment.status?.toUpperCase() || "PENDING"}
                     </span>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-black mt-2">
                       {selectedAppointment.createdAt
                         ? new Date(selectedAppointment.createdAt).toLocaleDateString('en-US', {
                           weekday: 'long',
@@ -1061,7 +1299,7 @@ function DoctorDashboardContent() {
 
               {/* Medical Information Section */}
               <div className="border-l-4 border-blue-600 bg-blue-50 rounded-lg p-5">
-                <h4 className="font-bold text-slate-900 text-lg mb-4 flex items-center gap-2">
+                <h4 className="font-bold text-black text-lg mb-4 flex items-center gap-2">
                   <Activity className="h-5 w-5 text-blue-600" />
                   Medical Information
                 </h4>
@@ -1069,7 +1307,7 @@ function DoctorDashboardContent() {
                   {/* Disease */}
                   {selectedAppointment.disease && (
                     <div className="bg-white rounded-lg p-4 border border-blue-100">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Detected Disease</p>
+                      <p className="text-xs font-bold text-black uppercase tracking-wider mb-1">Detected Disease</p>
                       <p className="text-xl font-bold text-blue-700">{selectedAppointment.disease}</p>
                     </div>
                   )}
@@ -1081,8 +1319,8 @@ function DoctorDashboardContent() {
                         <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-blue-600" />
                           <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Report</p>
-                            <p className="font-semibold text-slate-900">{selectedAppointment.reportName}</p>
+                            <p className="text-xs font-bold text-black uppercase tracking-wider">Report</p>
+                            <p className="font-semibold text-black">{selectedAppointment.reportName}</p>
                           </div>
                         </div>
                         {selectedAppointment.reportFileUrl && (
@@ -1103,12 +1341,12 @@ function DoctorDashboardContent() {
                   {/* OCR Extracted Text */}
                   {selectedAppointment.ocrText && (
                     <div className="bg-white rounded-lg p-4 border border-slate-200">
-                      <h5 className="font-bold text-slate-900 mb-2 text-sm flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-slate-500" />
+                      <h5 className="font-bold text-black mb-2 text-sm flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-black" />
                         OCR Extracted Text
                       </h5>
                       <div className="max-h-40 overflow-y-auto">
-                        <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap font-mono">
+                        <p className="text-xs text-black leading-relaxed whitespace-pre-wrap font-mono">
                           {selectedAppointment.ocrText}
                         </p>
                       </div>
@@ -1118,15 +1356,15 @@ function DoctorDashboardContent() {
                   {/* AI Analysis Report */}
                   {selectedAppointment.reportAnalysis && (
                     <div className="bg-white rounded-lg p-4 border border-emerald-100">
-                      <h5 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <h5 className="font-bold text-black mb-3 flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-emerald-600" />
                         AI Analysis Details
                       </h5>
                       <div className="space-y-3">
                         {selectedAppointment.reportAnalysis.details && (
                           <div>
-                            <p className="text-sm font-semibold text-slate-700 mb-1">Analysis Summary</p>
-                            <p className="text-slate-600 text-sm leading-relaxed">
+                            <p className="text-sm font-semibold text-black mb-1">Analysis Summary</p>
+                            <p className="text-black text-sm leading-relaxed">
                               {selectedAppointment.reportAnalysis.details}
                             </p>
                           </div>
@@ -1134,7 +1372,7 @@ function DoctorDashboardContent() {
 
                         {selectedAppointment.reportAnalysis.severity && (
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-slate-700">Severity:</p>
+                            <p className="text-sm font-semibold text-black">Severity:</p>
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${selectedAppointment.reportAnalysis.severity === "high" ? "bg-red-100 text-red-700" :
                                 selectedAppointment.reportAnalysis.severity === "medium" ? "bg-yellow-100 text-yellow-700" :
                                   "bg-green-100 text-green-700"
@@ -1146,7 +1384,7 @@ function DoctorDashboardContent() {
 
                         {selectedAppointment.reportAnalysis.suggestedSpecializations?.length > 0 && (
                           <div>
-                            <p className="text-sm font-semibold text-slate-700 mb-2">Recommended Specializations</p>
+                            <p className="text-sm font-semibold text-black mb-2">Recommended Specializations</p>
                             <div className="flex flex-wrap gap-2">
                               {selectedAppointment.reportAnalysis.suggestedSpecializations.map((spec, idx) => (
                                 <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
@@ -1159,11 +1397,11 @@ function DoctorDashboardContent() {
 
                         {selectedAppointment.reportAnalysis.ranges?.length > 0 && (
                           <div>
-                            <p className="text-sm font-semibold text-slate-700 mb-2">Blood Test Ranges</p>
+                            <p className="text-sm font-semibold text-black mb-2">Blood Test Ranges</p>
                             <div className="space-y-2">
                               {selectedAppointment.reportAnalysis.ranges.map((range, idx) => (
                                 <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                                  <span className="text-sm text-slate-700">{range.name}</span>
+                                  <span className="text-sm text-black">{range.name}</span>
                                   <div className="flex items-center gap-2">
                                     <span className="font-semibold">{range.value}</span>
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${range.status === "high" ? "bg-red-100 text-red-700" :
@@ -1184,16 +1422,53 @@ function DoctorDashboardContent() {
                 </div>
               </div>
 
+              {/* Show previous prescriptions for this patient */}
+              {localPrescriptions.filter(p => p.patientName === selectedAppointment.patientName).length > 0 && (
+                <div className="space-y-4 bg-emerald-50/30 p-5 rounded-lg border border-emerald-100">
+                  <h4 className="text-lg font-bold text-black flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-emerald-600" />
+                    Previous Prescriptions
+                  </h4>
+                  {localPrescriptions
+                    .filter(p => p.patientName === selectedAppointment.patientName)
+                    .map((pres, idx) => (
+                      <div key={idx} className="bg-white border border-emerald-100 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-bold text-black">{pres.diagnosis || "Consultation"}</p>
+                            <p className="text-sm text-slate-600 mt-1">
+                              {pres.medicines?.map(m => m.name).join(", ")}
+                            </p>
+                          </div>
+                          <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-1 rounded">{pres.createdAt}</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+
               {/* Appointment Notes */}
               {selectedAppointment.notes && (
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-slate-600" />
+                  <h4 className="font-bold text-black mb-2 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-black" />
                     Appointment Notes
                   </h4>
-                  <p className="text-slate-600 text-sm leading-relaxed">{selectedAppointment.notes}</p>
+                  <p className="text-black text-sm leading-relaxed">{selectedAppointment.notes}</p>
                 </div>
               )}
+
+              {/* Consultation Fee Breakdown */}
+              <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100 flex justify-between items-center text-sm">
+                <div>
+                  <p className="text-slate-600 font-medium">Total Consultation Fee Paid</p>
+                  <p className="text-xl font-black text-black">Rs. {selectedAppointment.fee || 1000}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-emerald-700 font-medium">Your Earnings (80%)</p>
+                  <p className="text-xl font-black text-emerald-600">Rs. {(parseFloat(selectedAppointment.fee || 1000) * 0.8).toFixed(0)}</p>
+                </div>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t border-slate-200">
@@ -1240,7 +1515,7 @@ function DoctorDashboardContent() {
               <div className="flex gap-3 pt-2">
                 <a
                   href={`mailto:${selectedAppointment.patientEmail}`}
-                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   <Mail className="h-4 w-4" />
                   Email Patient
@@ -1248,7 +1523,7 @@ function DoctorDashboardContent() {
                 {selectedAppointment.patientPhone && (
                   <a
                     href={`tel:${selectedAppointment.patientPhone}`}
-                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
                   >
                     <Phone className="h-4 w-4" />
                     Call Patient
@@ -1304,11 +1579,11 @@ function DoctorDashboardContent() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-slate-50 p-4 rounded-lg">
-              <p className="text-sm font-semibold text-slate-700 mb-2">Patient: {selectedReport?.patientName}</p>
-              <p className="text-sm text-slate-500">Uploaded: {selectedReport?.uploadDate}</p>
+              <p className="text-sm font-semibold text-black mb-2">Patient: {selectedReport?.patientName}</p>
+              <p className="text-sm text-black">Uploaded: {selectedReport?.uploadDate}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-black mb-2">
                 Analysis Findings
               </label>
               <textarea

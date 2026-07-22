@@ -4,8 +4,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request, { params }) {
   try {
+    const { patientId } = await params
     const db = await getDB()
-    const { patientId } = params
 
     if (!patientId) {
       return Response.json(
@@ -14,7 +14,6 @@ export async function GET(request, { params }) {
       )
     }
 
-    // Fetch notifications for the patient
     const notifications = await db
       .collection("notifications")
       .find({ patientId })

@@ -1,10 +1,11 @@
 import { getDB } from "@/config/database";
 import LabReportAPI from "@/lib/labReportAPI";
+import { sendAppointmentNotification, sendAppointmentConfirmation } from "@/lib/emailService";
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { doctorId, doctorName, patientId, reportId, scheduledDate, scheduledTime, notes } = body;
+    const { doctorId, doctorName, patientId, reportId, scheduledDate, scheduledTime, notes, fee, hospitalName } = body;
 
     console.log("[APPOINTMENT] Booking request:", { doctorId, doctorName, patientId, scheduledDate, scheduledTime });
 
@@ -97,6 +98,13 @@ export async function POST(request) {
       aiAnalysisResult: reportDetails?.analysis?.details || null,
       diseaseDetected: reportDetails?.analysis?.disease || null,
       status: "pending",
+      // Payment tracking
+      paymentStatus: "unpaid",
+      fee: fee || doctor.consultationFee || 1000,
+      hospitalName: hospitalName || "",
+      stripeSessionId: null,
+      stripePaymentIntentId: null,
+      paidAt: null,
       scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
       scheduledTime: scheduledTime || null,
       notes: notes || "",
@@ -132,7 +140,35 @@ export async function POST(request) {
       }
     );
 
-    return Response.json({
+    // Also add to top-level appointments collection
+    await db.collection("appointments").insertOne(appointment);
+
+    // Send email notifications
+    // Send to doctor
+    if (doctor.email) {
+      try {
+        await sendAppointmentNotification(doctor.email, appointment);
+        console.log("[APPOINTMENT] Doctor notification sent:", doctor.email);
+      } catch (emailError) {
+        console.error("[APPOINTMENT] Failed to send doctor email:", emailError);
+      }
+    }
+
+    // Send to patient
+    if (patient.email) {
+      try {
+        await sendAppointmentConfirmation(patient.email, {
+          ...appointment,
+          doctorName: doctor.name,
+          slotTime: scheduledTime,
+        });
+        console.log("[APPOINTMENT] Patient confirmation sent:", patient.email);
+      } catch (emailError) {
+        console.error("[APPOINTMENT] Failed to send patient confirmation:", emailError);
+      }
+    }
+
+     return Response.json({
       success: true,
       message: "Appointment booked successfully",
       data: {
@@ -176,6 +212,9 @@ export async function GET(request) {
         { status: 400 }
       );
     }
+
+    // Filter to only show visible/paid appointments (or legacy ones that don't have paymentStatus field)
+    appointments = appointments.filter(a => a.paymentStatus === "paid" || !a.paymentStatus);
 
     // Sort by date descending (newest first)
     appointments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

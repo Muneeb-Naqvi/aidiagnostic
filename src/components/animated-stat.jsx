@@ -100,7 +100,7 @@ export function AnimatedStat({
         </motion.div>
 
         {unit && (
-          <span className="text-xl font-medium text-[#80A0B5]">{unit}</span>
+          <span className="text-xl font-medium text-black">{unit}</span>
         )}
       </div>
 

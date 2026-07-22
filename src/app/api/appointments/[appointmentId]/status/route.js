@@ -37,6 +37,17 @@ export async function PATCH(request, { params }) {
       }
     );
 
+    // Also update in top-level appointments collection
+    await db.collection("appointments").updateOne(
+      { appointmentId },
+      {
+        $set: {
+          status,
+          updatedAt: new Date()
+        }
+      }
+    );
+
     if (doctorResult.matchedCount === 0) {
       return Response.json(
         { success: false, error: "Appointment not found" },

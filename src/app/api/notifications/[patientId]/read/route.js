@@ -4,7 +4,7 @@ import { ObjectId } from "mongodb"
 export async function PUT(request, { params }) {
   try {
     const db = await getDB()
-    const { patientId } = params
+    const { patientId } = await params
 
     if (!patientId) {
       return Response.json(
